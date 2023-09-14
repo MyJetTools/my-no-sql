@@ -1,0 +1,26 @@
+[package]
+name = "my-no-sql-tcp-reader"
+version = "0.2.1-rc01"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = []
+mocks = []
+
+[dependencies]
+my-no-sql-tcp-shared = {path = "../my-no-sql-tcp-shared"}
+my-no-sql-server-abstractions = { path = "../my-no-sql-server-abstractions" }
+my-no-sql-core = {path = "../my-no-sql-core"}
+
+rust-extensions = { tag = "0.1.3", git = "https://github.com/MyJetTools/rust-extensions.git" }
+my-tcp-sockets = { tag = "0.1.7", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
+my-logger = { tag = "0.2.1", git = "https://github.com/MyJetTools/my-logger.git" }
+my-json = { tag = "0.2.0", git = "https://github.com/MyJetTools/my-json.git" }
+
+tokio = { version = "*", features = ["full"] }
+tokio-util = "*"
+async-trait = "*"
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+serde_derive = "*"
