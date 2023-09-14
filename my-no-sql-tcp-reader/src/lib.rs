@@ -5,7 +5,7 @@ mod tcp_events;
 
 pub use my_no_sql_tcp_connection::MyNoSqlTcpConnection;
 pub use settings::*;
-pub use subscribers::{MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderData, MyNoSqlDataReaderTcp};
+pub use subscribers::{MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderData, MyNoSqlDataReaderTcp, MyNoSqlDataReader};
 
 #[cfg(feature = "mocks")]
 pub use subscribers::MyNoSqlDataReaderMock;
