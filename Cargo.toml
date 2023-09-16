@@ -5,6 +5,6 @@ members = [
     "my-no-sql-server-abstractions",
     "my-no-sql-tcp-shared",
     "my-no-sql-tcp-reader",
-    "my-no-sql",
+    "my-no-sql-sdk",
     "my-no-sql-core",
 ]

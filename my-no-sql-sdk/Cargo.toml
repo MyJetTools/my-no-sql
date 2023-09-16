@@ -1,5 +1,5 @@
 [package]
-name = "my-no-sql"
+name = "my-no-sql-sdk"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,7 +8,11 @@ edition = "2021"
 [features]
 core = ["dep:my-no-sql-core"]
 data-writer = ["dep:my-no-sql-data-writer"]
-macros = ["dep:my-no-sql-macros", "dep:rust-extensions", "dep:my-no-sql-server-abstractions"]
+macros = [
+    "dep:my-no-sql-macros",
+    "dep:rust-extensions",
+    "dep:my-no-sql-server-abstractions",
+]
 server-abstractions = ["dep:my-no-sql-server-abstractions"]
 reader = ["dep:my-no-sql-tcp-reader"]
 tcp-contracts = ["dep:my-no-sql-tcp-shared"]
