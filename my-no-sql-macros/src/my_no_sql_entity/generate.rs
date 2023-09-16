@@ -66,7 +66,7 @@ pub fn generate(attr: TokenStream, input: TokenStream) -> Result<TokenStream, sy
 
         #(#result)*
 
-        impl my_no_sql_sdk::server_abstractions::MyNoSqlEntity for #struct_name {
+        impl my_no_sql_sdk::abstractions::MyNoSqlEntity for #struct_name {
 
             const TABLE_NAME: &'static str = #table_name;
 
