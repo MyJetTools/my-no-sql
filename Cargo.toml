@@ -2,7 +2,7 @@
 members = [
     "my-no-sql-data-writer",
     "my-no-sql-macros",
-    "my-no-sql-server-abstractions",
+    "my-no-sql-abstractions",
     "my-no-sql-tcp-shared",
     "my-no-sql-tcp-reader",
     "my-no-sql-sdk",

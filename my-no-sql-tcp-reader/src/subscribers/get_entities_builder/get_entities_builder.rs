@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_server_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::MyNoSqlEntity;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use super::{super::my_no_sql_data_reader_tcp::MyNoSqlDataReaderInner, GetEntitiesBuilderInner};

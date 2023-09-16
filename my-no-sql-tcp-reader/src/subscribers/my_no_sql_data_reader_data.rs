@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use my_no_sql_server_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::MyNoSqlEntity;
 use rust_extensions::{lazy::LazyVec, ApplicationStates};
 
 use super::{MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderCallBacksPusher};

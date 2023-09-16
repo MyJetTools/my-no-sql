@@ -66,7 +66,7 @@ pub fn generate(attr: TokenStream, input: TokenStream) -> Result<TokenStream, sy
 
         #(#result)*
 
-        impl my_no_sql::server_abstractions::MyNoSqlEntity for #struct_name {
+        impl my_no_sql_sdk::server_abstractions::MyNoSqlEntity for #struct_name {
 
             const TABLE_NAME: &'static str = #table_name;
 
@@ -79,7 +79,7 @@ pub fn generate(attr: TokenStream, input: TokenStream) -> Result<TokenStream, sy
             }
 
             fn get_time_stamp(&self) -> i64 {
-                my_no_sql::rust_extensions::date_time::DateTimeAsMicroseconds::parse_iso_string(self.time_stamp.as_str())
+                my_no_sql_sdk::rust_extensions::date_time::DateTimeAsMicroseconds::parse_iso_string(self.time_stamp.as_str())
                     .unwrap()
                     .unix_microseconds
             }

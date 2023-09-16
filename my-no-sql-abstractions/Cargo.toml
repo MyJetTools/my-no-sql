@@ -1,5 +1,5 @@
 [package]
-name = "my-no-sql-server-abstractions"
+name = "my-no-sql-abstractions"
 version = "0.1.1"
 edition = "2021"
 

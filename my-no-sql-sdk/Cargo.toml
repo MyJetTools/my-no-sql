@@ -11,9 +11,9 @@ data-writer = ["dep:my-no-sql-data-writer"]
 macros = [
     "dep:my-no-sql-macros",
     "dep:rust-extensions",
-    "dep:my-no-sql-server-abstractions",
+    "dep:my-no-sql-abstractions",
 ]
-server-abstractions = ["dep:my-no-sql-server-abstractions"]
+abstractions = ["dep:my-no-sql-abstractions"]
 reader = ["dep:my-no-sql-tcp-reader"]
 tcp-contracts = ["dep:my-no-sql-tcp-shared"]
 
@@ -22,7 +22,7 @@ tcp-contracts = ["dep:my-no-sql-tcp-shared"]
 my-no-sql-core = { optional = true, path = "../my-no-sql-core" }
 my-no-sql-data-writer = { optional = true, path = "../my-no-sql-data-writer" }
 my-no-sql-macros = { optional = true, path = "../my-no-sql-macros" }
-my-no-sql-server-abstractions = { optional = true, path = "../my-no-sql-server-abstractions" }
+my-no-sql-abstractions = { optional = true, path = "../my-no-sql-abstractions" }
 my-no-sql-tcp-reader = { optional = true, path = "../my-no-sql-tcp-reader" }
 my-no-sql-tcp-shared = { optional = true, path = "../my-no-sql-tcp-shared" }
 

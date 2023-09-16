@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_server_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::MyNoSqlEntity;
 use rust_extensions::lazy::LazyVec;
 
 use super::MyNoSqlDataReaderCallBacks;
@@ -152,7 +152,7 @@ mod tests {
         sync::Arc,
     };
 
-    use my_no_sql_server_abstractions::MyNoSqlEntity;
+    use my_no_sql_abstractions::MyNoSqlEntity;
     use tokio::sync::Mutex;
 
     use crate::subscribers::MyNoSqlDataReaderCallBacks;

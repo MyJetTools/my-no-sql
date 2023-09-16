@@ -9,8 +9,8 @@ pub extern crate my_no_sql_macros as macros;
 #[cfg(feature = "macros")]
 pub extern crate rust_extensions as rust_extensions;
 
-#[cfg(any(feature = "macros", feature = "server-abstractions"))]
-pub extern crate my_no_sql_server_abstractions as server_abstractions;
+#[cfg(any(feature = "macros", feature = "abstractions"))]
+pub extern crate my_no_sql_abstractions as abstractions;
 
 #[cfg(feature = "reader")]
 pub extern crate my_no_sql_tcp_reader as reader;

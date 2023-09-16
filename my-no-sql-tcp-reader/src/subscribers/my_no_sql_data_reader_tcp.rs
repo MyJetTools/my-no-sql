@@ -6,8 +6,8 @@ use std::{
 
 use async_trait::async_trait;
 use my_json::json_reader::array_parser::JsonArrayIterator;
+use my_no_sql_abstractions::MyNoSqlEntity;
 use my_no_sql_core::db_json_entity::DbJsonEntity;
-use my_no_sql_server_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
 use rust_extensions::{ApplicationStates, StrOrString};
 use serde::de::DeserializeOwned;

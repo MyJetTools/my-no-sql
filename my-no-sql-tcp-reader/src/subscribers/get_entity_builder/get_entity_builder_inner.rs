@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_server_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::sync_to_main::UpdateEntityStatisticsData;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 

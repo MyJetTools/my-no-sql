@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_server_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::MyNoSqlEntity;
 
 use super::{GetEntitiesBuilder, GetEntityBuilder};
 

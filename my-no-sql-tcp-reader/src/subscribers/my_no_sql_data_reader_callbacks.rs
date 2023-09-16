@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_server_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::MyNoSqlEntity;
 
 #[async_trait::async_trait]
 pub trait MyNoSqlDataReaderCallBacks<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {

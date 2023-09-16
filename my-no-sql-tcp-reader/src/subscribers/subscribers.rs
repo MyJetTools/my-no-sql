@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use my_no_sql_server_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
 use rust_extensions::ApplicationStates;
 use serde::de::DeserializeOwned;

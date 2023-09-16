@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use flurl::{FlUrl, FlUrlResponse};
 use my_logger::LogEventCtx;
-use my_no_sql_server_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity};
+use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity};
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -572,7 +572,7 @@ async fn create_table_if_not_exists(
 
 #[cfg(test)]
 mod tests {
-    use my_no_sql_server_abstractions::MyNoSqlEntity;
+    use my_no_sql_abstractions::MyNoSqlEntity;
     use serde::Serialize;
 
     #[derive(Debug, Serialize)]

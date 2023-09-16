@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use my_no_sql_server_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::{sync_to_main::SyncToMainNodeHandler, MyNoSqlReaderTcpSerializer};
 use my_tcp_sockets::TcpClient;
 use rust_extensions::{AppStates, Logger, StrOrString};
