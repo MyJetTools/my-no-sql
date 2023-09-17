@@ -14,7 +14,7 @@ macros = [
     "dep:my-no-sql-abstractions",
 ]
 abstractions = ["dep:my-no-sql-abstractions"]
-reader = ["dep:my-no-sql-tcp-reader"]
+data-reader = ["dep:my-no-sql-tcp-reader"]
 tcp-contracts = ["dep:my-no-sql-tcp-shared"]
 
 [dependencies]

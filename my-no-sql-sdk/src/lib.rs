@@ -12,7 +12,7 @@ pub extern crate rust_extensions as rust_extensions;
 #[cfg(any(feature = "macros", feature = "abstractions"))]
 pub extern crate my_no_sql_abstractions as abstractions;
 
-#[cfg(feature = "reader")]
+#[cfg(feature = "data-reader")]
 pub extern crate my_no_sql_tcp_reader as reader;
 
 #[cfg(feature = "tcp-contracts")]
