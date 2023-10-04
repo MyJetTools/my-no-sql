@@ -175,19 +175,6 @@ where
 
         result
     }
-
-    pub async fn wait_until_first_data_arrives(&self) {
-        loop {
-            {
-                let reader = self.inner.data.read().await;
-                if reader.has_entities_at_all().await {
-                    return;
-                }
-            }
-
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-    }
 }
 
 #[async_trait]
@@ -262,5 +249,18 @@ where
 
     async fn has_partition(&self, partition_key: &str) -> bool {
         self.has_partition(partition_key).await
+    }
+
+    async fn wait_until_first_data_arrives(&self) {
+        loop {
+            {
+                let reader = self.inner.data.read().await;
+                if reader.has_entities_at_all().await {
+                    return;
+                }
+            }
+
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
     }
 }

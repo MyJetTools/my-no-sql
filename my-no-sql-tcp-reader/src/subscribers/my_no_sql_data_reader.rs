@@ -29,4 +29,6 @@ pub trait MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'stati
     ) -> GetEntityBuilder<TMyNoSqlEntity>;
 
     async fn has_partition(&self, partition_key: &str) -> bool;
+
+    async fn wait_until_first_data_arrives(&self);
 }
