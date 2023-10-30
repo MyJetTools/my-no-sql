@@ -435,7 +435,7 @@ async fn check_error(response: &mut FlUrlResponse) -> Result<(), DataWriterError
 
     if let Err(err) = &result {
         my_logger::LOGGER.write_error(
-            format!("FlUrlRequest to {}", response.url.to_string()),
+            format!("FlUrlRequest to {}", response.url.as_str()),
             format!("{:?}", err),
             None.into(),
         );
