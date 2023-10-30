@@ -68,4 +68,8 @@ where
     async fn has_partition(&self, partition_key: &str) -> bool {
         self.inner.has_partition(partition_key).await
     }
+
+    async fn wait_until_first_data_arrives(&self) {
+        todo!("Not Implemented");
+    }
 }
