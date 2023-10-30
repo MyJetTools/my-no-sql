@@ -86,7 +86,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize>
 
     pub async fn create_table(&self, params: CreateTableParams) -> Result<(), DataWriterError> {
         let url = self.settings.get_url().await;
-        let fl_url = FlUrl::new(url.as_str());
+        let fl_url = FlUrl::new(url.clone());
 
         let fl_url = fl_url
             .append_path_segment("Tables")
@@ -557,7 +557,7 @@ async fn create_table_if_not_exists(
     sync_period: DataSynchronizationPeriod,
 ) -> Result<(), DataWriterError> {
     let url = settings.get_url().await;
-    let fl_url = FlUrl::new(url.as_str())
+    let fl_url = FlUrl::new(url.clone())
         .append_path_segment("Tables")
         .append_path_segment("CreateIfNotExists")
         .append_data_sync_period(&sync_period)

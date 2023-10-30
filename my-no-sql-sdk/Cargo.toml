@@ -26,5 +26,5 @@ my-no-sql-abstractions = { optional = true, path = "../my-no-sql-abstractions" }
 my-no-sql-tcp-reader = { optional = true, path = "../my-no-sql-tcp-reader" }
 my-no-sql-tcp-shared = { optional = true, path = "../my-no-sql-tcp-shared" }
 
-rust-extensions = { optional = true, tag = "0.1.3", git = "https://github.com/MyJetTools/rust-extensions.git" }
+rust-extensions = { optional = true, tag = "0.1.4", git = "https://github.com/MyJetTools/rust-extensions.git" }
 # my_no_sql::macros::my_no_sql_entity

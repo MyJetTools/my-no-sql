@@ -8,10 +8,12 @@ edition = "2021"
 
 [dependencies]
 my-no-sql-abstractions = { path = "../my-no-sql-abstractions" }
-my-logger = { tag = "0.2.1", git = "https://github.com/MyJetTools/my-logger.git" }
+my-logger = { tag = "1.0.3", git = "https://github.com/MyJetTools/my-logger.git" }
 
-rust-extensions = { tag = "0.1.3", git = "https://github.com/MyJetTools/rust-extensions.git" }
-flurl = { tag = "0.4.0", git = "https://github.com/MyJetTools/fl-url" }
+rust-extensions = { tag = "0.1.4", git = "https://github.com/MyJetTools/rust-extensions.git", features = [
+    "with-tokio",
+] }
+flurl = { tag = "0.4.1", git = "https://github.com/MyJetTools/fl-url" }
 
 tokio = { version = "*", features = ["full"] }
 tokio-util = "*"
