@@ -204,7 +204,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize>
         check_error(&mut response).await?;
 
         if is_ok_result(&response) {
-            let entity = deserialize_entity(response.get_body().await?)?;
+            let entity = deserialize_entity(response.get_body_as_slice().await?)?;
             return Ok(Some(entity));
         }
 
@@ -236,7 +236,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize>
         check_error(&mut response).await?;
 
         if is_ok_result(&response) {
-            let entities = deserialize_entities(response.get_body().await?)?;
+            let entities = deserialize_entities(response.get_body_as_slice().await?)?;
             return Ok(Some(entities));
         }
 
@@ -263,7 +263,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize>
         check_error(&mut response).await?;
 
         if is_ok_result(&response) {
-            let entities = deserialize_entities(response.get_body().await?)?;
+            let entities = deserialize_entities(response.get_body_as_slice().await?)?;
             return Ok(Some(entities));
         }
 
@@ -292,7 +292,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize>
         check_error(&mut response).await?;
 
         if response.get_status_code() == 200 {
-            let entity = deserialize_entity(response.get_body().await?)?;
+            let entity = deserialize_entity(response.get_body_as_slice().await?)?;
             return Ok(Some(entity));
         }
 
@@ -334,7 +334,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize>
         check_error(&mut response).await?;
 
         if is_ok_result(&response) {
-            let entities = deserialize_entities(response.get_body().await?)?;
+            let entities = deserialize_entities(response.get_body_as_slice().await?)?;
             return Ok(Some(entities));
         }
 
@@ -472,7 +472,7 @@ pub struct OperationFailHttpContract {
 async fn deserialize_error(
     response: &mut FlUrlResponse,
 ) -> Result<DataWriterError, DataWriterError> {
-    let body = response.get_body().await?;
+    let body = response.get_body_as_slice().await?;
 
     let body_as_str = std::str::from_utf8(body)?;
 
