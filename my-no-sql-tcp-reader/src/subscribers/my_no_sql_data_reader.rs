@@ -2,6 +2,8 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use my_no_sql_abstractions::MyNoSqlEntity;
 
+use crate::MyNoSqlDataReaderCallBacks;
+
 use super::{GetEntitiesBuilder, GetEntityBuilder};
 
 #[async_trait::async_trait]
@@ -31,4 +33,11 @@ pub trait MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'stati
     async fn has_partition(&self, partition_key: &str) -> bool;
 
     async fn wait_until_first_data_arrives(&self);
+
+    async fn assign_callback<
+        TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+    >(
+        &self,
+        callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
+    );
 }

@@ -67,16 +67,6 @@ where
         reader.get_table_snapshot_as_vec()
     }
 
-    pub async fn assign_callback<
-        TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
-    >(
-        &self,
-        callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
-    ) {
-        let mut write_access = self.inner.data.write().await;
-        write_access.assign_callback(callbacks).await;
-    }
-
     pub async fn get_by_partition_key(
         &self,
         partition_key: &str,
@@ -262,5 +252,15 @@ where
 
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
+    }
+
+    async fn assign_callback<
+        TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+    >(
+        &self,
+        callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
+    ) {
+        let mut write_access = self.inner.data.write().await;
+        write_access.assign_callback(callbacks).await;
     }
 }
