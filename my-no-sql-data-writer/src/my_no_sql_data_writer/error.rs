@@ -14,11 +14,11 @@ pub enum DataWriterError {
     Utf8Error(Utf8Error),
     Error(String),
     FlUrlError(FlUrlError),
-    HyperError(hyper::Error),
+    HyperError(flurl::hyper::Error),
 }
 
-impl From<hyper::Error> for DataWriterError {
-    fn from(src: hyper::Error) -> Self {
+impl From<flurl::hyper::Error> for DataWriterError {
+    fn from(src: flurl::hyper::Error) -> Self {
         Self::HyperError(src)
     }
 }
