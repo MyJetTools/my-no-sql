@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 my-no-sql-abstractions = { path = "../my-no-sql-abstractions" }
-my-logger = { tag = "1.0.3", git = "https://github.com/MyJetTools/my-logger.git" }
+my-logger = { tag = "1.1.0", git = "https://github.com/MyJetTools/my-logger.git" }
 
 rust-extensions = { tag = "0.1.4", git = "https://github.com/MyJetTools/rust-extensions.git", features = [
     "with-tokio",

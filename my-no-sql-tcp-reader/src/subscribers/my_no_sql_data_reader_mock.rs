@@ -2,6 +2,8 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use my_no_sql_abstractions::MyNoSqlEntity;
 
+use crate::MyNoSqlDataReaderCallBacks;
+
 use super::{GetEntitiesBuilder, GetEntityBuilder, MyNoSqlDataReader, MyNoSqlDataReaderMockInner};
 
 pub struct MyNoSqlDataReaderMock<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
@@ -71,5 +73,14 @@ where
 
     async fn wait_until_first_data_arrives(&self) {
         todo!("Not Implemented");
+    }
+
+    async fn assign_callback<
+        TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+    >(
+        &self,
+        callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
+    ) {
+        self.inner.assign_callback(callbacks).await
     }
 }
