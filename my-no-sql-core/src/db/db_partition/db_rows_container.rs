@@ -38,7 +38,7 @@ impl DbRowsContainer {
     }
 
     #[cfg(feature = "master-node")]
-    pub fn get_rows_to_gc_by_max_amount(&self, max_rows_amount: usize) -> Option<Vec<&Arc<DbRow>>> {
+    pub fn get_rows_to_gc_by_max_amount(&self, max_rows_amount: usize) -> Option<Vec<Arc<DbRow>>> {
         if self.data.len() <= max_rows_amount {
             return None;
         }
@@ -54,8 +54,9 @@ impl DbRowsContainer {
 
         let mut result = Vec::with_capacity(max_records_amount);
 
-        for db_row in self.data.values().take(max_records_amount) {
-            result.push(db_row);
+        while result.len() < max_records_amount {
+            let first = by_last_read_access.pop_first();
+            result.push(first.unwrap().1);
         }
 
         Some(result)
