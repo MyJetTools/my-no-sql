@@ -50,11 +50,11 @@ impl DbRowsContainer {
             by_last_read_access.insert(last_read_access, db_row.clone());
         }
 
-        let max_records_amount = self.data.len() - max_rows_amount;
+        let records_amount_to_gc = self.data.len() - max_rows_amount;
 
-        let mut result = Vec::with_capacity(max_records_amount);
+        let mut result = Vec::with_capacity(records_amount_to_gc);
 
-        while result.len() < max_records_amount {
+        while result.len() < records_amount_to_gc {
             let first = by_last_read_access.pop_first();
             result.push(first.unwrap().1);
         }
