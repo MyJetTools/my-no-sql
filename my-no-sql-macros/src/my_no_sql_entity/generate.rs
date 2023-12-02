@@ -3,7 +3,7 @@ use quote::quote;
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use types_reader::ParamsList;
+use types_reader::TokensObject;
 
 pub fn generate(attr: TokenStream, input: TokenStream) -> Result<TokenStream, syn::Error> {
     let ast = proc_macro2::TokenStream::from(input);
@@ -13,12 +13,10 @@ pub fn generate(attr: TokenStream, input: TokenStream) -> Result<TokenStream, sy
     let mut struct_name = None;
     let mut passed_struct_name = false;
 
-    let params = ParamsList::new(attr.into(), || None)?;
+    let attr: proc_macro2::TokenStream = attr.into();
+    let params = TokensObject::new(attr.into(), &|| None)?;
 
-    let table_name = params
-        .get_from_single_or_named("table_name")?
-        .unwrap_as_string_value()?
-        .as_str();
+    let table_name: &str = params.get_from_single_or_named("table_name")?.try_into()?;
 
     for item in ast {
         if struct_name.is_none() {
