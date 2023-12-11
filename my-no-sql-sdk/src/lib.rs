@@ -1,4 +1,3 @@
-#[cfg(feature = "core")]
 pub extern crate my_no_sql_core as core;
 
 #[cfg(feature = "data-writer")]
@@ -9,7 +8,6 @@ pub extern crate my_no_sql_macros as macros;
 #[cfg(feature = "macros")]
 pub extern crate rust_extensions as rust_extensions;
 
-#[cfg(any(feature = "macros", feature = "abstractions"))]
 pub extern crate my_no_sql_abstractions as abstractions;
 
 #[cfg(feature = "data-reader")]

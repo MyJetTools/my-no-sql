@@ -574,8 +574,9 @@ async fn create_table_if_not_exists(
 mod tests {
     use my_no_sql_abstractions::MyNoSqlEntity;
     use serde::Serialize;
+    use serde_derive::Deserialize;
 
-    #[derive(Debug, Serialize)]
+    #[derive(Debug, Serialize, Deserialize)]
     #[serde(rename_all = "PascalCase")]
     struct TestEntity {
         partition_key: String,
@@ -595,6 +596,14 @@ mod tests {
 
         fn get_time_stamp(&self) -> i64 {
             0
+        }
+
+        fn serialize_entity(&self) -> Vec<u8> {
+            my_no_sql_core::entity_serializer::serialize(self)
+        }
+
+        fn deserialize_entity(src: &[u8]) -> Self {
+            my_no_sql_core::entity_serializer::deserialize(src)
         }
     }
 

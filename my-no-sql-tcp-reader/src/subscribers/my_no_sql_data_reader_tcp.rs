@@ -7,7 +7,6 @@ use std::{
 use async_trait::async_trait;
 use my_json::json_reader::array_parser::JsonArrayIterator;
 use my_no_sql_abstractions::MyNoSqlEntity;
-use my_no_sql_core::db_json_entity::DbJsonEntity;
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
 use rust_extensions::{ApplicationStates, StrOrString};
 use serde::de::DeserializeOwned;
@@ -113,32 +112,6 @@ where
         reader.has_partition(partition_key)
     }
 
-    pub fn deserialize_entity<'s>(&self, data: &[u8]) -> TMyNoSqlEntity {
-        let parse_result: Result<TMyNoSqlEntity, _> = serde_json::from_slice(&data);
-
-        match parse_result {
-            Ok(el) => return el,
-            Err(err) => {
-                let db_entity = DbJsonEntity::parse(data);
-
-                match db_entity {
-                    Ok(db_entity) => {
-                        panic!(
-                            "Table: {}. Can not parse entity with PartitionKey: [{}] and RowKey: [{}]. Err: {:?}",
-                             TMyNoSqlEntity::TABLE_NAME, db_entity.partition_key, db_entity.row_key, err
-                        );
-                    }
-                    Err(err) => {
-                        panic!(
-                            "Table: {}. Can not extract partitionKey and rowKey. Looks like entity broken at all. Err: {:?}",
-                            TMyNoSqlEntity::TABLE_NAME, err
-                        )
-                    }
-                }
-            }
-        }
-    }
-
     pub fn deserialize_array(&self, data: &[u8]) -> HashMap<String, Vec<TMyNoSqlEntity>> {
         let mut result = HashMap::new();
 
@@ -153,7 +126,7 @@ where
 
             let db_entity_data = db_entity.unwrap();
 
-            let el = self.deserialize_entity(db_entity_data);
+            let el = TMyNoSqlEntity::deserialize_entity(db_entity_data);
 
             let partition_key = el.get_partition_key();
             if !result.contains_key(partition_key) {

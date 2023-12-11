@@ -153,6 +153,7 @@ mod tests {
     };
 
     use my_no_sql_abstractions::MyNoSqlEntity;
+    use serde_derive::{Deserialize, Serialize};
     use tokio::sync::Mutex;
 
     use crate::subscribers::MyNoSqlDataReaderCallBacks;
@@ -212,6 +213,8 @@ mod tests {
             }
         }
     }
+
+    #[derive(Serialize, Deserialize, Clone, Debug)]
     pub struct TestRow {
         partition_key: String,
         row_key: String,
@@ -239,6 +242,14 @@ mod tests {
         }
         fn get_time_stamp(&self) -> i64 {
             self.timestamp
+        }
+
+        fn serialize_entity(&self) -> Vec<u8> {
+            my_no_sql_core::entity_serializer::serialize(self)
+        }
+
+        fn deserialize_entity(src: &[u8]) -> Self {
+            my_no_sql_core::entity_serializer::deserialize(src)
         }
     }
 

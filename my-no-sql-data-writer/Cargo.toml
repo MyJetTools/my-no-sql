@@ -21,3 +21,6 @@ async-trait = "*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 serde_derive = "*"
+
+[dev-dependencies]
+my-no-sql-core = { path = "../my-no-sql-core" }
