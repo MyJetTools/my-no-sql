@@ -1,2 +1,2 @@
 #[cfg(test)]
-mod enum_tests;
+mod macros_tests;
