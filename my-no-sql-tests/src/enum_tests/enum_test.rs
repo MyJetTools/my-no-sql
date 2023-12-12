@@ -1,26 +1,10 @@
 use my_no_sql_macros::*;
 use serde::*;
 
-#[enum_of_my_no_sql_entity("Test")]
+#[enum_of_my_no_sql_entity(table_name:"Test", generate_unwraps)]
 pub enum MyNoSqlEnumEntityTest {
     Case1(Struct1),
     Case2(Struct2),
-}
-
-impl MyNoSqlEnumEntityTest {
-    pub fn unwrap_case1(&self) -> &Struct1 {
-        match self {
-            MyNoSqlEnumEntityTest::Case1(v) => v,
-            _ => panic!("Not case 1"),
-        }
-    }
-
-    pub fn unwrap_case2(&self) -> &Struct2 {
-        match self {
-            MyNoSqlEnumEntityTest::Case2(v) => v,
-            _ => panic!("Not case 2"),
-        }
-    }
 }
 
 #[enum_model(partition_key:"pk1", row_key: "rk1")]

@@ -25,6 +25,8 @@ pub fn my_no_sql_entity(attr: TokenStream, input: TokenStream) -> TokenStream {
 struct EnumOfMyNoSqlEntityParameters<'s> {
     #[default]
     pub table_name: &'s str,
+    #[has_attribute]
+    pub generate_unwraps: bool,
 }
 
 #[proc_macro_attribute]

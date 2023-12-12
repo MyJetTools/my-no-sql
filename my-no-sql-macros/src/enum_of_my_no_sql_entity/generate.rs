@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use types_reader::{EnumCase, TokensObject};
 
 use crate::EnumOfMyNoSqlEntityParameters;
@@ -26,8 +28,22 @@ pub fn generate(
 
     let deserialize_cases = get_deserialize_cases(&enum_cases)?;
 
+    let unwraps = if parameters.generate_unwraps {
+        let unwraps = generate_unwraps(&enum_cases)?;
+        quote::quote! {
+            impl #enum_name{
+                #unwraps
+            }
+
+        }
+    } else {
+        proc_macro2::TokenStream::new()
+    };
+
     let result = quote::quote! {
         #ast
+
+        #unwraps
 
         impl my_no_sql_sdk::abstractions::MyNoSqlEntity for #enum_name {
 
@@ -64,7 +80,6 @@ pub fn generate(
         fn deserialize_entity(src: &[u8]) -> Self {
             #deserialize_cases
         }
-
 
        }
 
@@ -162,4 +177,57 @@ fn get_deserialize_cases(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenSt
     });
 
     Ok(quote::quote!(#(#result)*))
+}
+
+fn generate_unwraps(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenStream, syn::Error> {
+    let mut result = Vec::new();
+
+    for enum_case in enum_cases {
+        if enum_case.model.is_none() {
+            continue;
+        }
+
+        let enum_model = enum_case.model.as_ref().unwrap();
+
+        let enum_model_name_ident = enum_model.get_name_ident();
+
+        let fn_name = format!(
+            "unwrap_{}",
+            to_snake_case(&enum_case.get_name_ident().to_string())
+        );
+
+        let fn_name = proc_macro2::TokenStream::from_str(&fn_name)?;
+
+        let enum_case_ident = enum_case.get_name_ident();
+
+        let enum_case_str = enum_case_ident.to_string();
+
+        result.extend(quote::quote! {
+            pub fn #fn_name(&self) -> &#enum_model_name_ident {
+                match self {
+                    Self::#enum_case_ident(model) => model,
+                    _ => panic!("Expected case {}", #enum_case_str)
+                }
+            }
+        });
+    }
+
+    Ok(quote::quote!(#(#result)*))
+}
+
+fn to_snake_case(name: &str) -> String {
+    let mut result = String::new();
+
+    for c in name.chars() {
+        if c.is_uppercase() {
+            if !result.is_empty() {
+                result.push('_');
+            }
+            result.push(c.to_ascii_lowercase());
+        } else {
+            result.push(c);
+        }
+    }
+
+    result
 }
