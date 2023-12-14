@@ -42,24 +42,32 @@ where
 pub fn inject_partition_key_and_row_key(
     src: Vec<u8>,
     partition_key: &str,
-    row_key: &str,
+    row_key: Option<&str>,
 ) -> Vec<u8> {
     let found_object_index = src.iter().position(|&x| x == b'{');
 
     if found_object_index.is_none() {
         panic!(
-            "Can not find object start while injecting partitionKey:{partition_key} and rowKey:{row_key}"
+            "Can not find object start while injecting partitionKey:{partition_key} and rowKey:{row_key:?}"
         );
     }
 
     let found_object_index = found_object_index.unwrap();
 
-    let to_insert = format!(
-        "\"PartitionKey\":\"{}\",\"RowKey\":\"{}\",",
-        my_json::EscapedJsonString::new(partition_key).as_str(),
-        my_json::EscapedJsonString::new(row_key).as_str()
-    )
-    .into_bytes();
+    let to_insert = if let Some(row_key) = row_key {
+        format!(
+            "\"PartitionKey\":\"{}\",\"RowKey\":\"{}\",",
+            my_json::EscapedJsonString::new(partition_key).as_str(),
+            my_json::EscapedJsonString::new(row_key).as_str()
+        )
+        .into_bytes()
+    } else {
+        format!(
+            "\"PartitionKey\":\"{}\",",
+            my_json::EscapedJsonString::new(partition_key).as_str(),
+        )
+        .into_bytes()
+    };
 
     let mut result = Vec::with_capacity(src.len() + partition_key.len());
 
@@ -79,12 +87,27 @@ mod tests {
     fn test_injection() {
         let src = r#"{"TimeStamp":"2020-01-01T00:00:00.0000000Z","Value":"Value"}"#;
 
-        let injected = super::inject_partition_key_and_row_key(src.as_bytes().to_vec(), "PK", "RK");
+        let injected =
+            super::inject_partition_key_and_row_key(src.as_bytes().to_vec(), "PK", "RK".into());
 
         let dest = String::from_utf8(injected).unwrap();
 
         assert_eq!(
             r#"{"PartitionKey":"PK","RowKey":"RK","TimeStamp":"2020-01-01T00:00:00.0000000Z","Value":"Value"}"#,
+            dest
+        );
+    }
+
+    #[test]
+    fn test_injection_no_rk() {
+        let src = r#"{"TimeStamp":"2020-01-01T00:00:00.0000000Z","Value":"Value"}"#;
+
+        let injected = super::inject_partition_key_and_row_key(src.as_bytes().to_vec(), "PK", None);
+
+        let dest = String::from_utf8(injected).unwrap();
+
+        assert_eq!(
+            r#"{"PartitionKey":"PK","TimeStamp":"2020-01-01T00:00:00.0000000Z","Value":"Value"}"#,
             dest
         );
     }

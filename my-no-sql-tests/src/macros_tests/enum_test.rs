@@ -14,7 +14,7 @@ pub struct Struct1 {
     pub field2: i32,
 }
 
-#[enum_model(partition_key:"pk2", row_key: "rk2")]
+#[enum_model(partition_key:"pk2")]
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Struct2 {
     pub field3: String,
@@ -45,6 +45,7 @@ fn test_serialize_deserialize_case_1() {
 #[test]
 fn test_serialize_deserialize_case_2() {
     let src_model = Struct2 {
+        row_key: "rk2".to_string(),
         time_stamp: "".to_string(),
         field3: "test3".to_string(),
         field4: 1234,

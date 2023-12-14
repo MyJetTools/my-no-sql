@@ -42,7 +42,7 @@ pub fn enum_of_my_no_sql_entity(attr: TokenStream, input: TokenStream) -> TokenS
 #[derive(MacrosParameters)]
 struct EnumModelParameters<'s> {
     pub partition_key: &'s str,
-    pub row_key: &'s str,
+    pub row_key: Option<&'s str>,
 }
 #[proc_macro_attribute]
 pub fn enum_model(attr: TokenStream, input: TokenStream) -> TokenStream {

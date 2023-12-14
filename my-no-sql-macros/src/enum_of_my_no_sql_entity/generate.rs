@@ -30,11 +30,11 @@ pub fn generate(
 
     let unwraps = if parameters.generate_unwraps {
         let unwraps = generate_unwraps(&enum_cases)?;
+
         quote::quote! {
             impl #enum_name{
                 #unwraps
             }
-
         }
     } else {
         proc_macro2::TokenStream::new()
@@ -72,10 +72,12 @@ pub fn generate(
         }
 
         fn serialize_entity(&self) -> Vec<u8> {
-            let result = match self{
+            let (result, row_key) = match self{
                 #serialize_cases
             };
-            my_no_sql_sdk::core::entity_serializer::inject_partition_key_and_row_key(result, self.get_partition_key(), self.get_row_key())
+
+            my_no_sql_sdk::core::entity_serializer::inject_partition_key_and_row_key(result, self.get_partition_key(), row_key)
+
         }
         fn deserialize_entity(src: &[u8]) -> Self {
             #deserialize_cases
@@ -136,8 +138,11 @@ fn get_serialize_cases(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenStre
     for enum_case in enum_cases {
         let enum_case_ident = enum_case.get_name_ident();
 
+        let model = enum_case.model.as_ref().unwrap();
+        let model_ident = model.get_name_ident();
+
         result.extend(quote::quote! {
-            Self::#enum_case_ident(model) => model.serialize_entity(),
+            Self::#enum_case_ident(model) => (model.serialize_entity(), #model_ident::ROW_KEY),
         });
     }
 
@@ -158,8 +163,16 @@ fn get_deserialize_cases(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenSt
             Some(model) => {
                 let model_ident = model.get_name_ident();
                 result.push(quote::quote! {
-                    if entity.partition_key == #model_ident::PARTITION_KEY && entity.row_key == #model_ident::ROW_KEY {
-                        return Self::#enum_case_ident(#model_ident::deserialize_entity(src));
+
+                    if let Some(row_key) = #model_ident::ROW_KEY{
+                        if entity.partition_key == #model_ident::PARTITION_KEY && entity.row_key == row_key {
+                            return Self::#enum_case_ident(#model_ident::deserialize_entity(src));
+                        }
+                    }else{
+                        if entity.partition_key == #model_ident::PARTITION_KEY {
+                            return Self::#enum_case_ident(#model_ident::deserialize_entity(src));
+                        }
+    
                     }
                 });
             }
