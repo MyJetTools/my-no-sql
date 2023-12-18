@@ -21,14 +21,14 @@ pub fn generate(
     let fn_serialize_deserialize = get_fn_standard_serialize_deserialize();
 
     let (row_key, fn_get_row_key_body) = if let Some(row_key) = row_key {
-        let row_key = quote::quote!(const ROW_KEY: Option<&'static str> = Some(#row_key););
+        let row_key = quote::quote!(pub const ROW_KEY: Option<&'static str> = Some(#row_key););
 
         let fn_get_row_key_body = quote::quote!(Self::ROW_KEY.unwrap());
 
         (row_key, fn_get_row_key_body)
     } else {
         let row_key = quote::quote!(
-            const ROW_KEY: Option<&'static str> = None;
+            pub const ROW_KEY: Option<&'static str> = None;
         );
         let fn_get_row_key_body = quote::quote!(&self.row_key);
 
@@ -39,7 +39,7 @@ pub fn generate(
         #new_struct
 
         impl #struct_name{
-            const PARTITION_KEY:&'static str = #partition_key;
+            pub const PARTITION_KEY:&'static str = #partition_key;
             #row_key
         }
 
