@@ -15,11 +15,18 @@ pub enum DataWriterError {
     Error(String),
     FlUrlError(FlUrlError),
     HyperError(flurl::hyper::Error),
+    JsonParseError(my_json::json_reader::JsonParseError),
 }
 
 impl From<flurl::hyper::Error> for DataWriterError {
     fn from(src: flurl::hyper::Error) -> Self {
         Self::HyperError(src)
+    }
+}
+
+impl From<my_json::json_reader::JsonParseError> for DataWriterError {
+    fn from(src: my_json::json_reader::JsonParseError) -> Self {
+        Self::JsonParseError(src)
     }
 }
 

@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use flurl::{FlUrl, FlUrlResponse};
+use my_json::json_reader::array_parser::JsonArrayIterator;
 use my_logger::LogEventCtx;
 use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity};
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use crate::MyNoSqlWriterSettings;
 
@@ -44,15 +45,13 @@ impl CreateTableParams {
     }
 }
 
-pub struct MyNoSqlDataWriter<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize> {
+pub struct MyNoSqlDataWriter<TEntity: MyNoSqlEntity + Sync + Send + Serialize> {
     settings: Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     sync_period: DataSynchronizationPeriod,
     itm: Option<TEntity>,
 }
 
-impl<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize>
-    MyNoSqlDataWriter<TEntity>
-{
+impl<TEntity: MyNoSqlEntity + Sync + Send + Serialize> MyNoSqlDataWriter<TEntity> {
     //To Remove warning of itm
     pub fn do_not_use_it(&self) -> &Option<TEntity> {
         &self.itm
@@ -204,7 +203,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize>
         check_error(&mut response).await?;
 
         if is_ok_result(&response) {
-            let entity = deserialize_entity(response.get_body_as_slice().await?)?;
+            let entity = TEntity::deserialize_entity(response.get_body_as_slice().await?);
             return Ok(Some(entity));
         }
 
@@ -292,7 +291,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + Serialize>
         check_error(&mut response).await?;
 
         if response.get_status_code() == 200 {
-            let entity = deserialize_entity(response.get_body_as_slice().await?)?;
+            let entity = TEntity::deserialize_entity(response.get_body_as_slice().await?);
             return Ok(Some(entity));
         }
 
@@ -386,32 +385,16 @@ fn is_ok_result(response: &FlUrlResponse) -> bool {
     response.get_status_code() >= 200 && response.get_status_code() < 300
 }
 
-fn deserialize_entity<TEntity: DeserializeOwned>(src: &[u8]) -> Result<TEntity, DataWriterError> {
-    let src = std::str::from_utf8(src)?;
-    match serde_json::from_str(src) {
-        Ok(result) => Ok(result),
-        Err(err) => {
-            return Err(DataWriterError::Error(format!(
-                "Failed to deserialize entity: {:?}",
-                err
-            )))
-        }
-    }
-}
-
-fn deserialize_entities<TEntity: DeserializeOwned>(
+fn deserialize_entities<TEntity: MyNoSqlEntity>(
     src: &[u8],
 ) -> Result<Vec<TEntity>, DataWriterError> {
-    let src = std::str::from_utf8(src)?;
-    match serde_json::from_str(src) {
-        Ok(result) => Ok(result),
-        Err(err) => {
-            return Err(DataWriterError::Error(format!(
-                "Failed to deserialize entity: {:?}",
-                err
-            )))
-        }
+    let mut result = Vec::new();
+    for itm in JsonArrayIterator::new(src) {
+        let itm = itm.unwrap();
+
+        result.push(TEntity::deserialize_entity(itm));
     }
+    Ok(result)
 }
 
 fn serialize_entity_to_body<TEntity: Serialize>(entity: &TEntity) -> Option<Vec<u8>> {

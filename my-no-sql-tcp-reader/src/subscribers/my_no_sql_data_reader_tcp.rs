@@ -38,7 +38,7 @@ pub struct MyNoSqlDataReaderTcp<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 's
 
 impl<TMyNoSqlEntity> MyNoSqlDataReaderTcp<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static,
 {
     pub async fn new(
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
@@ -141,7 +141,7 @@ where
 }
 
 #[async_trait]
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned> UpdateEvent
+impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send> UpdateEvent
     for MyNoSqlDataReaderTcp<TMyNoSqlEntity>
 {
     async fn init_table(&self, data: Vec<u8>) {

@@ -3,7 +3,6 @@ use std::{collections::HashMap, sync::Arc};
 use my_no_sql_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
 use rust_extensions::ApplicationStates;
-use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
 use super::{MyNoSqlDataReaderTcp, UpdateEvent};
@@ -21,12 +20,11 @@ impl Subscribers {
 
     pub async fn create_subscriber<TMyNoSqlEntity>(
         &self,
-
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
         sync_handler: Arc<SyncToMainNodeHandler>,
     ) -> Arc<MyNoSqlDataReaderTcp<TMyNoSqlEntity>>
     where
-        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
+        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static,
     {
         let mut write_access = self.subscribers.write().await;
 

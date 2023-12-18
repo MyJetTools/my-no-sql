@@ -4,7 +4,6 @@ use my_no_sql_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::{sync_to_main::SyncToMainNodeHandler, MyNoSqlReaderTcpSerializer};
 use my_tcp_sockets::TcpClient;
 use rust_extensions::{AppStates, Logger, StrOrString};
-use serde::de::DeserializeOwned;
 
 use crate::{
     subscribers::MyNoSqlDataReaderTcp, tcp_events::TcpEvents, MyNoSqlTcpConnectionSettings,
@@ -50,9 +49,7 @@ impl MyNoSqlTcpConnection {
         }
     }
 
-    pub async fn get_reader<
-        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
-    >(
+    pub async fn get_reader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>(
         &self,
     ) -> Arc<MyNoSqlDataReaderTcp<TMyNoSqlEntity>> {
         self.tcp_events
