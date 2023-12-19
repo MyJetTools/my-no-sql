@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use flurl::{FlUrl, FlUrlResponse};
-use my_json::json_reader::array_parser::JsonArrayIterator;
+use my_json::{json_reader::array_parser::JsonArrayIterator, json_writer::JsonArrayWriter};
 use my_logger::LogEventCtx;
 use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity};
 
@@ -45,13 +45,13 @@ impl CreateTableParams {
     }
 }
 
-pub struct MyNoSqlDataWriter<TEntity: MyNoSqlEntity + Sync + Send + Serialize> {
+pub struct MyNoSqlDataWriter<TEntity: MyNoSqlEntity + Sync + Send> {
     settings: Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     sync_period: DataSynchronizationPeriod,
     itm: Option<TEntity>,
 }
 
-impl<TEntity: MyNoSqlEntity + Sync + Send + Serialize> MyNoSqlDataWriter<TEntity> {
+impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriter<TEntity> {
     //To Remove warning of itm
     pub fn do_not_use_it(&self) -> &Option<TEntity> {
         &self.itm
@@ -121,7 +121,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + Serialize> MyNoSqlDataWriter<TEntity
             .append_path_segment("Insert")
             .append_data_sync_period(&self.sync_period)
             .with_table_name_as_query_param(TEntity::TABLE_NAME)
-            .post(serialize_entity_to_body(entity))
+            .post(entity.serialize_entity().into())
             .await?;
 
         if is_ok_result(&response) {
@@ -141,7 +141,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send + Serialize> MyNoSqlDataWriter<TEntity
             .append_path_segment("InsertOrReplace")
             .append_data_sync_period(&self.sync_period)
             .with_table_name_as_query_param(TEntity::TABLE_NAME)
-            .post(serialize_entity_to_body(entity))
+            .post(entity.serialize_entity().into())
             .await?;
 
         if is_ok_result(&response) {
@@ -397,15 +397,18 @@ fn deserialize_entities<TEntity: MyNoSqlEntity>(
     Ok(result)
 }
 
-fn serialize_entity_to_body<TEntity: Serialize>(entity: &TEntity) -> Option<Vec<u8>> {
-    serde_json::to_string(&entity).unwrap().into_bytes().into()
-}
+fn serialize_entities_to_body<TEntity: MyNoSqlEntity>(entities: &[TEntity]) -> Option<Vec<u8>> {
+    if entities.len() == 0 {
+        return None;
+    }
 
-fn serialize_entities_to_body<TEntity: Serialize>(entities: &[TEntity]) -> Option<Vec<u8>> {
-    serde_json::to_string(&entities)
-        .unwrap()
-        .into_bytes()
-        .into()
+    let mut json_array_writer = JsonArrayWriter::new();
+
+    for entity in entities {
+        json_array_writer.write_raw_element(entity.serialize_entity().as_slice());
+    }
+
+    Some(json_array_writer.build())
 }
 
 async fn check_error(response: &mut FlUrlResponse) -> Result<(), DataWriterError> {
