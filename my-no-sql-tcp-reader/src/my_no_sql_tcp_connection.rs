@@ -15,8 +15,8 @@ pub struct TcpConnectionSettings {
 
 #[async_trait::async_trait]
 impl my_tcp_sockets::TcpClientSocketSettings for TcpConnectionSettings {
-    async fn get_host_port(&self) -> String {
-        self.settings.get_host_port().await
+    async fn get_host_port(&self) -> Option<String> {
+        self.settings.get_host_port().await.into()
     }
 }
 
