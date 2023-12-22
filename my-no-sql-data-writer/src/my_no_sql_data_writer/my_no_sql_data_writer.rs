@@ -157,6 +157,10 @@ impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriter<TEntity> {
         &self,
         entities: &[TEntity],
     ) -> Result<(), DataWriterError> {
+        if entities.is_empty() {
+            return Ok(());
+        }
+
         let response = self
             .get_fl_url()
             .await
