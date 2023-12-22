@@ -399,7 +399,7 @@ fn deserialize_entities<TEntity: MyNoSqlEntity>(
 
 fn serialize_entities_to_body<TEntity: MyNoSqlEntity>(entities: &[TEntity]) -> Option<Vec<u8>> {
     if entities.len() == 0 {
-        return None;
+        return Some(vec![b'[', b']']);
     }
 
     let mut json_array_writer = JsonArrayWriter::new();
