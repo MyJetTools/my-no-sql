@@ -63,9 +63,9 @@ pub fn generate(
 
         #fn_serialize_deserialize
 
-        #impl_additional_traits
-
        }
+
+       #impl_additional_traits
 
     };
 
