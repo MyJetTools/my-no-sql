@@ -22,6 +22,38 @@ pub trait MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'stati
 
     async fn get_entity(&self, partition_key: &str, row_key: &str) -> Option<Arc<TMyNoSqlEntity>>;
 
+    async fn get_single_entity<
+        T: MyNoSqlEntity + my_no_sql_abstractions::GetMyNoSqlEntity + Sync + Send + 'static,
+    >(
+        &self,
+    ) -> Option<Arc<TMyNoSqlEntity>> {
+        self.get_entity(T::PARTITION_KEY, T::ROW_KEY).await
+    }
+
+    async fn get_entities_by_partition_key<
+        T: MyNoSqlEntity
+            + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
+            + Sync
+            + Send
+            + 'static,
+    >(
+        &self,
+    ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
+        self.get_by_partition_key(T::PARTITION_KEY).await
+    }
+
+    async fn get_entities_by_partition_key_as_vec<
+        T: MyNoSqlEntity
+            + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
+            + Sync
+            + Send
+            + 'static,
+    >(
+        &self,
+    ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+        self.get_by_partition_key_as_vec(T::PARTITION_KEY).await
+    }
+
     fn get_entities<'s>(&self, partition_key: &'s str) -> GetEntitiesBuilder<TMyNoSqlEntity>;
 
     fn get_entity_with_callback_to_server<'s>(

@@ -8,4 +8,11 @@ pub trait MyNoSqlEntity {
     fn deserialize_entity(src: &[u8]) -> Self;
 }
 
+pub trait GetMyNoSqlEntity {
+    const PARTITION_KEY: &'static str;
+    const ROW_KEY: &'static str;
+}
 
+pub trait GetMyNoSqlEntitiesByPartitionKey {
+    const PARTITION_KEY: &'static str;
+}

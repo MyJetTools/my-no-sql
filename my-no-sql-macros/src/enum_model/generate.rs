@@ -20,6 +20,9 @@ pub fn generate(
 
     let fn_serialize_deserialize = get_fn_standard_serialize_deserialize();
 
+    let impl_additional_traits =
+        impl_single_entity_or_entities_trait(&struct_name, partition_key, row_key);
+
     let (row_key, fn_get_row_key_body) = if let Some(row_key) = row_key {
         let row_key = quote::quote!(pub const ROW_KEY: Option<&'static str> = Some(#row_key););
 
@@ -60,9 +63,31 @@ pub fn generate(
 
         #fn_serialize_deserialize
 
+        #impl_additional_traits
+
        }
 
     };
 
     Ok(result.into())
+}
+
+fn impl_single_entity_or_entities_trait(
+    struct_name: &syn::Ident,
+    partition_key: &str,
+    row_key: Option<&str>,
+) -> proc_macro2::TokenStream {
+    match row_key {
+        Some(row_key) => quote::quote! {
+            impl my_no_sql_sdk::abstractions::GetMyNoSqlEntity for #struct_name {
+                const PARTITION_KEY: &'static str = #partition_key;
+                const ROW_KEY: &'static str = #row_key;
+            }
+        },
+        None => quote::quote! {
+            impl my_no_sql_sdk::abstractions::GetMyNoSqlEntitiesByPartitionKey for #struct_name {
+                const PARTITION_KEY: &'static str = #partition_key;
+            }
+        },
+    }
 }
