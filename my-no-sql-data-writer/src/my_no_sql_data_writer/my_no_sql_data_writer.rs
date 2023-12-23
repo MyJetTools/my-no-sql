@@ -246,8 +246,8 @@ impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriter<TEntity> {
         return Ok(None);
     }
 
-    pub async fn get_entities_by_partition_key<
-        T: MyNoSqlEntity
+    pub async fn get_enum_cases_by_partition_key<
+        TResult: MyNoSqlEntity
             + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
             + Sync
             + Send
@@ -256,18 +256,47 @@ impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriter<TEntity> {
         &self,
         update_read_statistics: Option<UpdateReadStatistics>,
     ) -> Result<Option<Vec<TEntity>>, DataWriterError> {
-        self.get_by_partition_key(T::PARTITION_KEY, update_read_statistics)
-            .await
+        let result = self
+            .get_by_partition_key(TResult::PARTITION_KEY, update_read_statistics)
+            .await?;
+
+        match result {
+            Some(entities) => {
+                let mut result = Vec::with_capacity(entities.len());
+
+                for entity in entities {
+                    result.push(entity.into());
+                }
+
+                Ok(Some(result))
+            }
+            None => Ok(None),
+        }
     }
 
-    pub async fn get_single_entity<
-        T: MyNoSqlEntity + my_no_sql_abstractions::GetMyNoSqlEntity + Sync + Send + 'static,
+    pub async fn get_enum_case<
+        TResult: MyNoSqlEntity
+            + From<TEntity>
+            + my_no_sql_abstractions::GetMyNoSqlEntity
+            + Sync
+            + Send
+            + 'static,
     >(
         &self,
         update_read_statistics: Option<UpdateReadStatistics>,
-    ) -> Result<Option<TEntity>, DataWriterError> {
-        self.get_entity(T::PARTITION_KEY, T::ROW_KEY, update_read_statistics)
-            .await
+    ) -> Result<Option<TResult>, DataWriterError> {
+        let entity = self
+            .get_entity(
+                TResult::PARTITION_KEY,
+                TResult::ROW_KEY,
+                update_read_statistics,
+            )
+            .await?;
+
+        match entity {
+            Some(entity) => Ok(Some(entity.into())),
+            None => Ok(None),
+        }
     }
 
     pub async fn get_by_row_key(

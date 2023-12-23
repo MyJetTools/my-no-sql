@@ -22,36 +22,63 @@ pub trait MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'stati
 
     async fn get_entity(&self, partition_key: &str, row_key: &str) -> Option<Arc<TMyNoSqlEntity>>;
 
-    async fn get_single_entity<
-        T: MyNoSqlEntity + my_no_sql_abstractions::GetMyNoSqlEntity + Sync + Send + 'static,
-    >(
-        &self,
-    ) -> Option<Arc<TMyNoSqlEntity>> {
-        self.get_entity(T::PARTITION_KEY, T::ROW_KEY).await
-    }
-
-    async fn get_entities_by_partition_key<
+    async fn get_enum_case<
+        's,
         T: MyNoSqlEntity
-            + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
+            + my_no_sql_abstractions::GetMyNoSqlEntity
+            + From<Arc<TMyNoSqlEntity>>
             + Sync
             + Send
             + 'static,
     >(
         &self,
-    ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
-        self.get_by_partition_key(T::PARTITION_KEY).await
+    ) -> Option<T> {
+        let result = self.get_entity(T::PARTITION_KEY, T::ROW_KEY).await?;
+        let result = result.into();
+        Some(result)
     }
 
-    async fn get_entities_by_partition_key_as_vec<
+    async fn get_enum_cases_by_partition_key<
         T: MyNoSqlEntity
             + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
+            + From<Arc<TMyNoSqlEntity>>
             + Sync
             + Send
             + 'static,
     >(
         &self,
-    ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
-        self.get_by_partition_key_as_vec(T::PARTITION_KEY).await
+    ) -> Option<BTreeMap<String, T>> {
+        let items = self.get_by_partition_key(T::PARTITION_KEY).await?;
+        let mut result = BTreeMap::new();
+
+        for (pk, entity) in items {
+            let item: T = entity.into();
+            result.insert(pk, item);
+        }
+
+        Some(result)
+    }
+
+    async fn get_enum_cases_by_partition_key_as_vec<
+        T: MyNoSqlEntity
+            + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
+            + From<Arc<TMyNoSqlEntity>>
+            + Sync
+            + Send
+            + 'static,
+    >(
+        &self,
+    ) -> Option<Vec<T>> {
+        let items = self.get_by_partition_key_as_vec(T::PARTITION_KEY).await?;
+
+        let mut result = Vec::with_capacity(items.len());
+
+        for entity in items {
+            let item: T = entity.into();
+            result.push(item);
+        }
+
+        Some(result)
     }
 
     fn get_entities<'s>(&self, partition_key: &'s str) -> GetEntitiesBuilder<TMyNoSqlEntity>;
