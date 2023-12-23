@@ -326,6 +326,45 @@ impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriter<TEntity> {
         return Ok(None);
     }
 
+    pub async fn delete_enum_case<
+        TResult: MyNoSqlEntity
+            + From<TEntity>
+            + my_no_sql_abstractions::GetMyNoSqlEntity
+            + Sync
+            + Send
+            + 'static,
+    >(
+        &self,
+    ) -> Result<Option<TResult>, DataWriterError> {
+        let entity = self
+            .delete_row(TResult::PARTITION_KEY, TResult::ROW_KEY)
+            .await?;
+
+        match entity {
+            Some(entity) => Ok(Some(entity.into())),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn delete_enum_case_with_row_key<
+        TResult: MyNoSqlEntity
+            + From<TEntity>
+            + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
+            + Sync
+            + Send
+            + 'static,
+    >(
+        &self,
+        row_key: &str,
+    ) -> Result<Option<TResult>, DataWriterError> {
+        let entity = self.delete_row(TResult::PARTITION_KEY, row_key).await?;
+
+        match entity {
+            Some(entity) => Ok(Some(entity.into())),
+            None => Ok(None),
+        }
+    }
+
     pub async fn delete_row(
         &self,
         partition_key: &str,
