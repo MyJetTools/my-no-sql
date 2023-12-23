@@ -22,7 +22,7 @@ pub trait MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'stati
 
     async fn get_entity(&self, partition_key: &str, row_key: &str) -> Option<Arc<TMyNoSqlEntity>>;
 
-    async fn get_enum_case<
+    async fn get_enum_case_model<
         's,
         T: MyNoSqlEntity
             + my_no_sql_abstractions::GetMyNoSqlEntity
@@ -38,7 +38,7 @@ pub trait MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'stati
         Some(result)
     }
 
-    async fn get_enum_cases_by_partition_key<
+    async fn get_enum_case_models_by_partition_key<
         T: MyNoSqlEntity
             + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
             + From<Arc<TMyNoSqlEntity>>
@@ -59,7 +59,7 @@ pub trait MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'stati
         Some(result)
     }
 
-    async fn get_enum_cases_by_partition_key_as_vec<
+    async fn get_enum_case_models_by_partition_key_as_vec<
         T: MyNoSqlEntity
             + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
             + From<Arc<TMyNoSqlEntity>>

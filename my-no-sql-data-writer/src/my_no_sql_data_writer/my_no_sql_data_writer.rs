@@ -246,7 +246,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriter<TEntity> {
         return Ok(None);
     }
 
-    pub async fn get_enum_cases_by_partition_key<
+    pub async fn get_enum_case_models_by_partition_key<
         TResult: MyNoSqlEntity
             + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
             + From<TEntity>
@@ -275,7 +275,7 @@ impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriter<TEntity> {
         }
     }
 
-    pub async fn get_enum_case<
+    pub async fn get_enum_case_model<
         TResult: MyNoSqlEntity
             + From<TEntity>
             + my_no_sql_abstractions::GetMyNoSqlEntity
