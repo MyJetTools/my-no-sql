@@ -40,6 +40,7 @@ pub fn generate(
         proc_macro2::TokenStream::new()
     };
 
+    let into_s = generate_into_for_each_case(enum_name,&enum_cases)?;
     let result = quote::quote! {
         #ast
 
@@ -84,6 +85,8 @@ pub fn generate(
         }
 
        }
+
+       #into_s
 
     };
 
@@ -206,7 +209,7 @@ fn generate_unwraps(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenStream,
 
         let fn_name = format!(
             "unwrap_{}",
-            to_snake_case(&enum_case.get_name_ident().to_string())
+            types_reader::utils::to_snake_case(&enum_case.get_name_ident().to_string())
         );
 
         let fn_name = proc_macro2::TokenStream::from_str(&fn_name)?;
@@ -228,19 +231,47 @@ fn generate_unwraps(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenStream,
     Ok(quote::quote!(#(#result)*))
 }
 
-fn to_snake_case(name: &str) -> String {
-    let mut result = String::new();
 
-    for c in name.chars() {
-        if c.is_uppercase() {
-            if !result.is_empty() {
-                result.push('_');
-            }
-            result.push(c.to_ascii_lowercase());
-        } else {
-            result.push(c);
+
+fn generate_into_for_each_case(enum_name_ident: &syn::Ident, enum_cases: &[EnumCase])-> Result<proc_macro2::TokenStream, syn::Error>{
+    let mut result = Vec::new();
+
+    for enum_case in enum_cases{
+
+        if let Some(model) = enum_case.model.as_ref(){
+
+            let model_ident = model.get_name_ident();
+            let enum_case_ident = enum_case.get_name_ident();
+            let enum_case_str = enum_case_ident.to_string();
+
+            result.push(quote::quote!{
+                impl From<#enum_name_ident> for #model_ident{
+                    fn from(item: #enum_name_ident) -> Self {
+                       match item{
+                            #enum_name_ident::#enum_case_ident(model) => model,
+                            _ => panic!("Expected case {}", #enum_case_str)
+                       }
+                    }
+                }
+
+            
+                impl From<std::sync::Arc<#enum_name_ident>> for #model_ident{
+                    fn from(item: std::sync::Arc<#enum_name_ident>) -> Self {
+                       match item.as_ref(){
+                            #enum_name_ident::#enum_case_ident(model) => model.clone(),
+                            _ => panic!("Expected case {}", #enum_case_str)
+                       }
         }
     }
 
-    result
+            });
+    
+        }
+
+    }
+
+
+    Ok(quote::quote!(#(#result)*))
 }
+
+
