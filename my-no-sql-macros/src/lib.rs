@@ -51,3 +51,11 @@ pub fn enum_model(attr: TokenStream, input: TokenStream) -> TokenStream {
         Err(err) => err.into_compile_error().into(),
     }
 }
+
+#[proc_macro]
+pub fn time_stamp_init(_input: TokenStream) -> TokenStream {
+    quote::quote! {
+        "".to_string()
+    }
+    .into()
+}
