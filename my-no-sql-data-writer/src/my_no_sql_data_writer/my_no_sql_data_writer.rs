@@ -249,13 +249,14 @@ impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriter<TEntity> {
     pub async fn get_enum_cases_by_partition_key<
         TResult: MyNoSqlEntity
             + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
+            + From<TEntity>
             + Sync
             + Send
             + 'static,
     >(
         &self,
         update_read_statistics: Option<UpdateReadStatistics>,
-    ) -> Result<Option<Vec<TEntity>>, DataWriterError> {
+    ) -> Result<Option<Vec<TResult>>, DataWriterError> {
         let result = self
             .get_by_partition_key(TResult::PARTITION_KEY, update_read_statistics)
             .await?;
