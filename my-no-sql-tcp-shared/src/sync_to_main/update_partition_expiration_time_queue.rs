@@ -1,11 +1,11 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 #[derive(Debug, Clone)]
 pub struct UpdatePartitionExpirationEvent {
     pub table_name: String,
-    pub partitions: HashMap<String, Option<DateTimeAsMicroseconds>>,
+    pub partitions: BTreeMap<String, Option<DateTimeAsMicroseconds>>,
 }
 
 pub struct UpdatePartitionsExpirationTimeQueue {
@@ -34,7 +34,7 @@ impl UpdatePartitionsExpirationTimeQueue {
             return;
         }
 
-        let mut partitions = HashMap::new();
+        let mut partitions = BTreeMap::new();
         partitions.insert(partition_key.to_string(), date_time);
 
         self.queue.push_back(UpdatePartitionExpirationEvent {

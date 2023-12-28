@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::Arc,
-};
+use std::{collections::BTreeMap, sync::Arc};
 
 use my_no_sql_abstractions::MyNoSqlEntity;
 use rust_extensions::{lazy::LazyVec, ApplicationStates};
@@ -52,7 +49,7 @@ where
         return self.entities.as_mut().unwrap();
     }
 
-    pub async fn init_table(&mut self, data: HashMap<String, Vec<TMyNoSqlEntity>>) {
+    pub async fn init_table(&mut self, data: BTreeMap<String, Vec<TMyNoSqlEntity>>) {
         let mut new_table: BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>> =
             BTreeMap::new();
 
@@ -82,7 +79,7 @@ where
     pub async fn init_partition(
         &mut self,
         partition_key: &str,
-        src_entities: HashMap<String, Vec<TMyNoSqlEntity>>,
+        src_entities: BTreeMap<String, Vec<TMyNoSqlEntity>>,
     ) {
         let callbacks = self.callbacks.clone();
 
@@ -111,7 +108,7 @@ where
         }
     }
 
-    pub fn update_rows(&mut self, src_data: HashMap<String, Vec<TMyNoSqlEntity>>) {
+    pub fn update_rows(&mut self, src_data: BTreeMap<String, Vec<TMyNoSqlEntity>>) {
         let callbacks = self.callbacks.clone();
 
         let entities = self.get_init_table();
@@ -151,7 +148,7 @@ where
         let callbacks = self.callbacks.clone();
 
         let mut deleted_rows = if callbacks.is_some() {
-            Some(HashMap::new())
+            Some(BTreeMap::new())
         } else {
             None
         };

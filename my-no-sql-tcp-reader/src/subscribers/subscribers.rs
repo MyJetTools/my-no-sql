@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use my_no_sql_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
@@ -8,13 +8,13 @@ use tokio::sync::RwLock;
 use super::{MyNoSqlDataReaderTcp, UpdateEvent};
 
 pub struct Subscribers {
-    subscribers: RwLock<HashMap<String, Arc<dyn UpdateEvent + Send + Sync + 'static>>>,
+    subscribers: RwLock<BTreeMap<String, Arc<dyn UpdateEvent + Send + Sync + 'static>>>,
 }
 
 impl Subscribers {
     pub fn new() -> Self {
         Self {
-            subscribers: RwLock::new(HashMap::new()),
+            subscribers: RwLock::new(BTreeMap::new()),
         }
     }
 

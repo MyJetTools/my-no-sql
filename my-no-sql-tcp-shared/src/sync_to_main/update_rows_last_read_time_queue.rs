@@ -1,9 +1,9 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 #[derive(Debug, Clone)]
 pub struct UpdateRowsLastReadTimeEvent {
     pub table_name: String,
     pub partition_key: String,
-    pub row_keys: HashMap<String, ()>,
+    pub row_keys: BTreeMap<String, ()>,
 }
 
 pub struct UpdateRowsLastReadTimeQueue {

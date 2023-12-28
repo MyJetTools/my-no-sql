@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -6,7 +6,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 pub struct UpdateRowsExpirationTimeEvent {
     pub table_name: String,
     pub partition_key: String,
-    pub row_keys: HashMap<String, ()>,
+    pub row_keys: BTreeMap<String, ()>,
     pub expiration_time: Option<DateTimeAsMicroseconds>,
 }
 

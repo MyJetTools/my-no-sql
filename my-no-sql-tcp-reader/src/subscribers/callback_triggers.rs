@@ -147,10 +147,7 @@ pub async fn trigger_brand_new_partition<
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::{BTreeMap, HashMap},
-        sync::Arc,
-    };
+    use std::{collections::BTreeMap, sync::Arc};
 
     use my_no_sql_abstractions::MyNoSqlEntity;
     use serde_derive::{Deserialize, Serialize};
@@ -159,8 +156,8 @@ mod tests {
     use crate::subscribers::MyNoSqlDataReaderCallBacks;
 
     struct TestCallbacksInner {
-        inserted_or_replaced_entities: HashMap<String, Vec<Arc<TestRow>>>,
-        deleted: HashMap<String, Vec<Arc<TestRow>>>,
+        inserted_or_replaced_entities: BTreeMap<String, Vec<Arc<TestRow>>>,
+        deleted: BTreeMap<String, Vec<Arc<TestRow>>>,
     }
 
     pub struct TestCallbacks {
@@ -171,8 +168,8 @@ mod tests {
         pub fn new() -> Self {
             Self {
                 data: Mutex::new(TestCallbacksInner {
-                    inserted_or_replaced_entities: HashMap::new(),
-                    deleted: HashMap::new(),
+                    inserted_or_replaced_entities: BTreeMap::new(),
+                    deleted: BTreeMap::new(),
                 }),
             }
         }

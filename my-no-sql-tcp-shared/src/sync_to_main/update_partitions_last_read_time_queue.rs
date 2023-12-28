@@ -1,9 +1,9 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 
 #[derive(Clone, Debug)]
 pub struct UpdatePartitionsLastReadTimeEvent {
     pub table_name: String,
-    pub partitions: HashMap<String, ()>,
+    pub partitions: BTreeMap<String, ()>,
 }
 
 pub struct UpdatePartitionsLastReadTimeQueue {
@@ -33,7 +33,7 @@ impl UpdatePartitionsLastReadTimeQueue {
             return;
         }
 
-        let mut partitions = HashMap::new();
+        let mut partitions = BTreeMap::new();
         for partition_key in partition_keys {
             partitions.insert(partition_key.to_string(), ());
         }
@@ -53,7 +53,7 @@ impl UpdatePartitionsLastReadTimeQueue {
             item.partitions.insert(partition_key.to_string(), ());
         }
 
-        let mut partitions = HashMap::new();
+        let mut partitions = BTreeMap::new();
 
         partitions.insert(partition_key.to_string(), ());
 

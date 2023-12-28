@@ -1,8 +1,4 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use my_json::json_reader::array_parser::JsonArrayIterator;
@@ -112,8 +108,8 @@ where
         reader.has_partition(partition_key)
     }
 
-    pub fn deserialize_array(&self, data: &[u8]) -> HashMap<String, Vec<TMyNoSqlEntity>> {
-        let mut result = HashMap::new();
+    pub fn deserialize_array(&self, data: &[u8]) -> BTreeMap<String, Vec<TMyNoSqlEntity>> {
+        let mut result = BTreeMap::new();
 
         for db_entity in JsonArrayIterator::new(data) {
             if let Err(err) = &db_entity {
