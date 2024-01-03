@@ -2,12 +2,14 @@ use std::collections::BTreeMap;
 
 use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
 
+use rust_extensions::auto_shrink::VecAutoShrink;
+
 pub trait ExpirationItemsAreSame<T: Clone> {
     fn are_same(&self, other_one: &T) -> bool;
 }
 
 pub struct ExpirationIndex<T: Clone + ExpirationItemsAreSame<T>> {
-    index: BTreeMap<i64, Vec<T>>,
+    index: BTreeMap<i64, VecAutoShrink<T>>,
     amount: usize,
 }
 
@@ -31,7 +33,10 @@ impl<T: Clone + ExpirationItemsAreSame<T>> ExpirationIndex<T> {
                 items.push(item.clone());
             }
             None => {
-                self.index.insert(expire_moment, vec![item.clone()]);
+                self.index.insert(
+                    expire_moment,
+                    VecAutoShrink::new_with_element(32, item.clone()),
+                );
             }
         }
 
@@ -69,7 +74,7 @@ impl<T: Clone + ExpirationItemsAreSame<T>> ExpirationIndex<T> {
                 break;
             }
 
-            for itm in items {
+            for itm in items.iter() {
                 result.add(itm);
             }
         }
@@ -84,7 +89,7 @@ impl<T: Clone + ExpirationItemsAreSame<T>> ExpirationIndex<T> {
                 break;
             }
 
-            for itm in items {
+            for itm in items.iter() {
                 result.add(itm.clone());
             }
         }

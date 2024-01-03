@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, VecDeque};
+use rust_extensions::auto_shrink::VecDequeAutoShrink;
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug)]
 pub struct UpdatePartitionsLastReadTimeEvent {
@@ -7,13 +8,13 @@ pub struct UpdatePartitionsLastReadTimeEvent {
 }
 
 pub struct UpdatePartitionsLastReadTimeQueue {
-    queue: VecDeque<UpdatePartitionsLastReadTimeEvent>,
+    queue: VecDequeAutoShrink<UpdatePartitionsLastReadTimeEvent>,
 }
 
 impl UpdatePartitionsLastReadTimeQueue {
     pub fn new() -> Self {
         Self {
-            queue: VecDeque::new(),
+            queue: VecDequeAutoShrink::new(32),
         }
     }
 

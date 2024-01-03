@@ -1,6 +1,6 @@
-use std::collections::{BTreeMap, VecDeque};
-
+use rust_extensions::auto_shrink::VecDequeAutoShrink;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone)]
 pub struct UpdatePartitionExpirationEvent {
@@ -9,13 +9,13 @@ pub struct UpdatePartitionExpirationEvent {
 }
 
 pub struct UpdatePartitionsExpirationTimeQueue {
-    queue: VecDeque<UpdatePartitionExpirationEvent>,
+    queue: VecDequeAutoShrink<UpdatePartitionExpirationEvent>,
 }
 
 impl UpdatePartitionsExpirationTimeQueue {
     pub fn new() -> Self {
         Self {
-            queue: VecDeque::new(),
+            queue: VecDequeAutoShrink::new(32),
         }
     }
 
