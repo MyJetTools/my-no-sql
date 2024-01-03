@@ -27,6 +27,12 @@ impl DbRow {
         data: Vec<u8>,
         #[cfg(feature = "master-node")] time_stamp: &crate::db_json_entity::JsonTimeStamp,
     ) -> Self {
+        #[cfg(feature = "debug_db_row")]
+        println!(
+            "Created DbRow: PK:{}. RK:{}. Expires{:?}",
+            db_json_entity.partition_key, db_json_entity.row_key, db_json_entity.expires
+        );
+
         Self {
             partition_key: db_json_entity.partition_key.to_string(),
             row_key: db_json_entity.row_key.to_string(),
@@ -90,5 +96,14 @@ impl DbRow {
 impl crate::ExpirationItemsAreSame<Arc<DbRow>> for Arc<DbRow> {
     fn are_same(&self, other_one: &Arc<DbRow>) -> bool {
         self.row_key == other_one.row_key
+    }
+}
+#[cfg(feature = "debug_db_row")]
+impl Drop for DbRow {
+    fn drop(&mut self) {
+        println!(
+            "Dropped DbRow: PK:{}. RK:{}. Expires{:?}",
+            self.partition_key, self.row_key, self.expires
+        );
     }
 }

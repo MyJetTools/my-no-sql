@@ -22,8 +22,8 @@ pub struct DbPartition {
 }
 
 impl DbPartition {
-    pub fn new() -> DbPartition {
-        DbPartition {
+    pub fn new() -> Self {
+        Self {
             rows: DbRowsContainer::new(),
             #[cfg(feature = "master-node")]
             last_read_moment: AtomicDateTimeAsMicroseconds::now(),
