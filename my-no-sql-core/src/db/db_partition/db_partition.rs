@@ -6,7 +6,7 @@ use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 
 use crate::{db::DbRow, ExpirationItem};
 
-use std::{collections::btree_map::Values, sync::Arc};
+use std::{cell::Ref, collections::btree_map::Values, sync::Arc};
 
 use super::DbRowsContainer;
 
@@ -20,6 +20,10 @@ impl PartitionKey {
 
     pub fn as_str(&self) -> &str {
         self.0.as_str()
+    }
+
+    pub fn as_ref_of_string(&self) -> &String {
+        &self.0
     }
 
     pub fn to_string(&self) -> String {
