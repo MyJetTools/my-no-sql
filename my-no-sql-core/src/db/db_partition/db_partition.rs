@@ -6,7 +6,7 @@ use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 
 use crate::{db::DbRow, ExpirationItem};
 
-use std::{cell::Ref, collections::btree_map::Values, sync::Arc};
+use std::{collections::btree_map::Values, sync::Arc};
 
 use super::DbRowsContainer;
 
