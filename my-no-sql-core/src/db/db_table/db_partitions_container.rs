@@ -2,12 +2,14 @@
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use std::collections::{btree_map::Values, BTreeMap};
 
-use crate::db::DbPartition;
+#[cfg(feature = "master-node")]
+use crate::db::PartitionKey;
 
+use crate::db::DbPartition;
 pub struct DbPartitionsContainer {
     partitions: BTreeMap<String, DbPartition>,
     #[cfg(feature = "master-node")]
-    partitions_to_expire_index: crate::ExpirationIndex<String>,
+    partitions_to_expire_index: crate::ExpirationIndex<PartitionKey>,
 }
 
 impl DbPartitionsContainer {
@@ -33,7 +35,10 @@ impl DbPartitionsContainer {
         self.partitions.values_mut()
     }
     #[cfg(feature = "master-node")]
-    pub fn get_partitions_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<&String>> {
+    pub fn get_partitions_to_expire(
+        &self,
+        now: DateTimeAsMicroseconds,
+    ) -> Option<Vec<PartitionKey>> {
         self.partitions_to_expire_index.get_items_to_expire(now)
     }
 
@@ -53,30 +58,37 @@ impl DbPartitionsContainer {
         self.partitions.contains_key(partition_key)
     }
 
-    pub fn insert(&mut self, partition_key: &String, db_partition: DbPartition) {
+    pub fn insert(&mut self, db_partition: DbPartition) {
         #[cfg(feature = "master-node")]
         let new_expires = db_partition.expires;
 
+        #[cfg(feature = "master-node")]
+        let partition_key = db_partition.partition_key.clone();
+
         let _removed_partition = self
             .partitions
-            .insert(partition_key.to_string(), db_partition);
+            .insert(db_partition.partition_key.to_string(), db_partition);
 
         #[cfg(feature = "master-node")]
         if let Some(removed_partition) = _removed_partition {
-            self.partitions_to_expire_index
-                .remove(removed_partition.expires, partition_key);
+            if let Some(expires) = removed_partition.expires {
+                self.partitions_to_expire_index
+                    .remove(expires, &removed_partition.partition_key);
+            }
         }
         #[cfg(feature = "master-node")]
         self.partitions_to_expire_index
-            .add(new_expires, partition_key);
+            .add(new_expires, &partition_key);
     }
 
-    pub fn remove(&mut self, partition_key: &String) -> Option<DbPartition> {
+    pub fn remove(&mut self, partition_key: &str) -> Option<DbPartition> {
         let removed_partition = self.partitions.remove(partition_key);
         #[cfg(feature = "master-node")]
         if let Some(removed_partition) = &removed_partition {
-            self.partitions_to_expire_index
-                .remove(removed_partition.expires, partition_key);
+            if let Some(expires) = removed_partition.expires {
+                self.partitions_to_expire_index
+                    .remove(expires, &removed_partition.partition_key);
+            }
         }
 
         removed_partition
@@ -100,17 +112,20 @@ impl DbPartitionsContainer {
     pub fn get_partitions_to_gc_by_max_amount(
         &self,
         max_partitions_amount: usize,
-    ) -> Option<Vec<&String>> {
+    ) -> Option<Vec<PartitionKey>> {
         if self.partitions.len() <= max_partitions_amount {
             return None;
         }
 
         let mut partitions_to_gc = BTreeMap::new();
 
-        for (partition_key, partition) in &self.partitions {
-            let last_read_access = partition.get_last_read_moment();
+        for db_partition in self.partitions.values() {
+            let last_read_access = db_partition.get_last_read_moment();
 
-            partitions_to_gc.insert(last_read_access.unix_microseconds, partition_key);
+            partitions_to_gc.insert(
+                last_read_access.unix_microseconds,
+                db_partition.partition_key.clone(),
+            );
         }
 
         let amount_to_gc = self.partitions.len() - max_partitions_amount;

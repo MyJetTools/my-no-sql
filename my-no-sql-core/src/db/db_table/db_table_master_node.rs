@@ -63,7 +63,9 @@ impl DbTable {
             if let Some(rows_to_expire) = db_partition.get_rows_to_expire(now) {
                 result.add_rows_to_expire(
                     partition_key,
-                    rows_to_expire.iter().map(|itm| itm.row_key.to_string()),
+                    rows_to_expire
+                        .iter()
+                        .map(|itm| itm.get_row_key().to_string()),
                 );
             }
 
@@ -75,7 +77,7 @@ impl DbTable {
                 {
                     result.add_rows_to_expire(
                         partition_key,
-                        rows_to_gc.iter().map(|itm| itm.row_key.to_string()),
+                        rows_to_gc.iter().map(|itm| itm.get_row_key().to_string()),
                     );
                 }
             }
@@ -109,17 +111,19 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
-        let db_row = db_json_entity.new_db_row(&now);
+        let db_row = db_json_entity.into_db_row(test_json, &now);
 
         let db_row = Arc::new(db_row);
 
         db_table.insert_row(&db_row, None);
 
-        assert_eq!(db_table.get_table_size(), db_row.data.len());
+        assert_eq!(db_table.get_table_size(), db_row.content_len());
         assert_eq!(db_table.get_partitions_amount(), 1);
     }
 
@@ -135,11 +139,13 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
-        let db_row = db_json_entity.new_db_row(&now);
+        let db_row = db_json_entity.into_db_row(test_json, &now);
 
         let db_row = Arc::new(db_row);
 
@@ -149,17 +155,19 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "AAA": "111"
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
-        let db_row2 = db_json_entity.new_db_row(&now);
+        let db_row2 = db_json_entity.into_db_row(test_json, &now);
 
         let db_row2 = Arc::new(db_row2);
 
         db_table.insert_or_replace_row(&db_row2, None);
 
-        assert_eq!(db_table.get_table_size(), db_row2.data.len());
+        assert_eq!(db_table.get_table_size(), db_row2.content_len());
         assert_eq!(db_table.get_partitions_amount(), 1);
     }
 }

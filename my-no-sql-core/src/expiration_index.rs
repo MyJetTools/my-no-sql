@@ -4,16 +4,20 @@ use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
 
 use rust_extensions::auto_shrink::VecAutoShrink;
 
-pub trait ExpirationItemsAreSame<T: Clone> {
-    fn are_same(&self, other_one: &T) -> bool;
+pub trait ExpirationItem {
+    fn get_id(&self) -> &str;
+
+    fn are_same(&self, other_one: &Self) -> bool {
+        self.get_id() == other_one.get_id()
+    }
 }
 
-pub struct ExpirationIndex<T: Clone + ExpirationItemsAreSame<T>> {
+pub struct ExpirationIndex<T: Clone + ExpirationItem> {
     index: BTreeMap<i64, VecAutoShrink<T>>,
     amount: usize,
 }
 
-impl<T: Clone + ExpirationItemsAreSame<T>> ExpirationIndex<T> {
+impl<T: Clone + ExpirationItem> ExpirationIndex<T> {
     pub fn new() -> Self {
         Self {
             index: BTreeMap::new(),
@@ -43,31 +47,23 @@ impl<T: Clone + ExpirationItemsAreSame<T>> ExpirationIndex<T> {
         self.amount += 1;
     }
 
-    pub fn remove(&mut self, expiration_moment: Option<DateTimeAsMicroseconds>, item: &T) {
-        if expiration_moment.is_none() {
-            return;
-        }
+    pub fn remove(&mut self, expiration_moment: DateTimeAsMicroseconds, item: &T) {
+        let expire_moment = expiration_moment.unix_microseconds;
 
-        let expire_moment = expiration_moment.unwrap().unix_microseconds;
-
+        let mut is_empty = false;
         if let Some(items) = self.index.get_mut(&expire_moment) {
             items.retain(|f| !item.are_same(f));
+            is_empty = items.is_empty();
+        }
+
+        if is_empty {
+            self.index.remove(&expire_moment);
         }
 
         self.amount -= 1;
     }
 
-    pub fn update(
-        &mut self,
-        old_expiration_moment: Option<DateTimeAsMicroseconds>,
-        new_expiration_moment: Option<DateTimeAsMicroseconds>,
-        item: &T,
-    ) {
-        self.remove(old_expiration_moment, item);
-        self.add(new_expiration_moment, item);
-    }
-
-    pub fn get_items_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<&T>> {
+    pub fn get_items_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<T>> {
         let mut result = LazyVec::new();
         for (expiration_time, items) in &self.index {
             if *expiration_time > now.unix_microseconds {
@@ -75,7 +71,7 @@ impl<T: Clone + ExpirationItemsAreSame<T>> ExpirationIndex<T> {
             }
 
             for itm in items.iter() {
-                result.add(itm);
+                result.add(itm.clone());
             }
         }
 
@@ -107,11 +103,5 @@ impl<T: Clone + ExpirationItemsAreSame<T>> ExpirationIndex<T> {
 
     pub fn clear(&mut self) {
         self.index.clear();
-    }
-}
-
-impl ExpirationItemsAreSame<String> for String {
-    fn are_same(&self, other_one: &String) -> bool {
-        self == other_one
     }
 }

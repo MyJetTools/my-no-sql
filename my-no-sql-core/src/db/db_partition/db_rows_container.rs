@@ -33,7 +33,7 @@ impl DbRowsContainer {
         self.rows_with_expiration_index.len()
     }
     #[cfg(feature = "master-node")]
-    pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<&Arc<DbRow>>> {
+    pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<Arc<DbRow>>> {
         self.rows_with_expiration_index.get_items_to_expire(now)
     }
 
@@ -64,14 +64,17 @@ impl DbRowsContainer {
 
     pub fn insert(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
         #[cfg(feature = "master-node")]
-        self.rows_with_expiration_index.add(db_row.expires, &db_row);
+        self.rows_with_expiration_index
+            .add(db_row.get_expires(), &db_row);
 
-        let result = self.data.insert(db_row.row_key.to_string(), db_row);
+        let result = self.data.insert(db_row.get_row_key().to_string(), db_row);
 
         #[cfg(feature = "master-node")]
         if let Some(removed_db_row) = &result {
-            self.rows_with_expiration_index
-                .remove(removed_db_row.expires, &removed_db_row);
+            if let Some(old_expires) = removed_db_row.get_expires() {
+                self.rows_with_expiration_index
+                    .remove(old_expires, &removed_db_row);
+            }
         }
 
         result
@@ -82,8 +85,10 @@ impl DbRowsContainer {
 
         #[cfg(feature = "master-node")]
         if let Some(removed_db_row) = &result {
-            self.rows_with_expiration_index
-                .remove(removed_db_row.expires, &removed_db_row);
+            if let Some(expires) = removed_db_row.get_expires() {
+                self.rows_with_expiration_index
+                    .remove(expires, &removed_db_row);
+            }
         }
 
         result
@@ -128,37 +133,42 @@ impl DbRowsContainer {
         &mut self,
         row_key: &str,
         expiration_time: Option<DateTimeAsMicroseconds>,
-    ) -> Option<Arc<DbRow>> {
-        if let Some(db_row) = self.get(row_key) {
-            if db_row.expires.is_none() && expiration_time.is_none() {
-                return None;
+    ) {
+        if let Some(db_row) = self.get(row_key).cloned() {
+            let old_expires = db_row.update_expires(expiration_time);
+
+            self.rows_with_expiration_index
+                .add(expiration_time, &db_row);
+
+            if are_expires_the_same(old_expires, expiration_time) {
+                return;
             }
 
-            if let Some(db_row_expires) = db_row.expires {
-                if let Some(new_expires) = expiration_time {
-                    if db_row_expires.unix_microseconds == new_expires.unix_microseconds {
-                        return None;
-                    }
-                }
+            if let Some(old_expires) = old_expires {
+                self.rows_with_expiration_index.remove(old_expires, &db_row);
             }
         }
-
-        let removed_db_row = self.data.remove(row_key)?;
-
-        let new_db_row = removed_db_row.create_with_new_expiration_time(expiration_time);
-
-        let new_db_row = Arc::new(new_db_row);
-
-        self.rows_with_expiration_index.update(
-            removed_db_row.expires,
-            new_db_row.expires,
-            &new_db_row,
-        );
-
-        self.data.insert(row_key.to_string(), new_db_row);
-
-        Some(removed_db_row)
     }
+}
+
+#[cfg(feature = "master-node")]
+fn are_expires_the_same(
+    old_expires: Option<rust_extensions::date_time::DateTimeAsMicroseconds>,
+    new_expires: Option<rust_extensions::date_time::DateTimeAsMicroseconds>,
+) -> bool {
+    if let Some(old_expires) = old_expires {
+        if let Some(new_expires) = new_expires {
+            return new_expires.unix_microseconds == old_expires.unix_microseconds;
+        }
+
+        return false;
+    }
+
+    if new_expires.is_some() {
+        return false;
+    }
+
+    true
 }
 
 #[cfg(feature = "master-node")]
@@ -177,13 +187,15 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
         let time_stamp = JsonTimeStamp::now();
-        db_rows.insert(Arc::new(db_json_entity.new_db_row(&time_stamp)));
+        db_rows.insert(Arc::new(db_json_entity.into_db_row(test_json, &time_stamp)));
 
         assert_eq!(1, db_rows.rows_with_expiration_index.len())
     }
@@ -193,30 +205,34 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
         let time_stamp = JsonTimeStamp::now();
-        db_rows.insert(Arc::new(db_json_entity.new_db_row(&time_stamp)));
+        db_rows.insert(Arc::new(db_json_entity.into_db_row(test_json, &time_stamp)));
 
         assert_eq!(0, db_rows.rows_with_expiration_index.len())
     }
 
     #[test]
-    fn test_that_index_dissapears() {
+    fn test_that_index_is_removed() {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00"
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
         let time_stamp = JsonTimeStamp::now();
-        db_rows.insert(Arc::new(db_json_entity.new_db_row(&time_stamp)));
+        db_rows.insert(Arc::new(db_json_entity.into_db_row(test_json, &time_stamp)));
 
         db_rows.remove("test");
 
@@ -228,13 +244,15 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test"
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
         let time_stamp = JsonTimeStamp::now();
-        db_rows.insert(Arc::new(db_json_entity.new_db_row(&time_stamp)));
+        db_rows.insert(Arc::new(db_json_entity.into_db_row(test_json, &time_stamp)));
 
         assert_eq!(0, db_rows.rows_with_expiration_index.len());
 
@@ -257,15 +275,17 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
         let time_stamp = JsonTimeStamp::now();
 
-        let db_row = Arc::new(db_json_entity.new_db_row(&time_stamp));
+        let db_row = Arc::new(db_json_entity.into_db_row(test_json, &time_stamp));
         db_rows.insert(db_row.clone());
 
         let current_expiration = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
@@ -297,12 +317,14 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
         let now = JsonTimeStamp::now();
-        let db_row = Arc::new(db_json_entity.new_db_row(&now));
+        let db_row = Arc::new(db_json_entity.into_db_row(test_json, &now));
         db_rows.insert(db_row.clone());
 
         let current_expiration = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
@@ -327,13 +349,15 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
         let now = JsonTimeStamp::now();
 
-        let db_row = Arc::new(db_json_entity.new_db_row(&now));
+        let db_row = Arc::new(db_json_entity.into_db_row(test_json, &now));
         db_rows.insert(db_row.clone());
 
         let mut now = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
@@ -352,13 +376,15 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#;
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
 
         let now = JsonTimeStamp::now();
 
-        let db_row = Arc::new(db_json_entity.new_db_row(&now));
+        let db_row = Arc::new(db_json_entity.into_db_row(test_json, &now));
         db_rows.insert(db_row.clone());
 
         let now = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
@@ -374,16 +400,17 @@ mod tests {
 
         let mut now = DateTimeAsMicroseconds::now();
 
-        let db_json_entity = DbJsonEntity::parse(
-            r#"{
+        let json = r#"{
             "PartitionKey": "test",
             "RowKey": "test1",
         }"#
-            .as_bytes(),
-        )
-        .unwrap();
+        .as_bytes()
+        .to_vec();
 
-        let db_row = Arc::new(db_json_entity.new_db_row(&JsonTimeStamp::from_date_time(now)));
+        let db_json_entity = DbJsonEntity::parse(&json).unwrap();
+
+        let db_row =
+            Arc::new(db_json_entity.into_db_row(json, &JsonTimeStamp::from_date_time(now)));
 
         db_rows.insert(db_row.clone());
 
@@ -391,33 +418,17 @@ mod tests {
 
         now.add_seconds(1);
 
-        let db_json_entity = DbJsonEntity::parse(
-            r#"{
+        let raw_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test2",
         }"#
-            .as_bytes(),
-        )
-        .unwrap();
+        .as_bytes()
+        .to_vec();
 
-        let db_row = Arc::new(db_json_entity.new_db_row(&JsonTimeStamp::from_date_time(now)));
+        let db_json_entity = DbJsonEntity::parse(&raw_json).unwrap();
 
-        db_rows.insert(db_row.clone());
-
-        // Next Item
-
-        now.add_seconds(1);
-
-        let db_json_entity = DbJsonEntity::parse(
-            r#"{
-                    "PartitionKey": "test",
-                    "RowKey": "test3",
-                }"#
-            .as_bytes(),
-        )
-        .unwrap();
-
-        let db_row = Arc::new(db_json_entity.new_db_row(&JsonTimeStamp::from_date_time(now)));
+        let db_row =
+            Arc::new(db_json_entity.into_db_row(raw_json, &JsonTimeStamp::from_date_time(now)));
 
         db_rows.insert(db_row.clone());
 
@@ -425,21 +436,40 @@ mod tests {
 
         now.add_seconds(1);
 
-        let db_json_entity = DbJsonEntity::parse(
-            r#"{
-                            "PartitionKey": "test",
-                            "RowKey": "test4",
-                        }"#
-            .as_bytes(),
-        )
-        .unwrap();
+        let json_db_row = r#"{
+            "PartitionKey": "test",
+            "RowKey": "test3",
+        }"#
+        .as_bytes()
+        .to_vec();
 
-        let db_row = Arc::new(db_json_entity.new_db_row(&JsonTimeStamp::from_date_time(now)));
+        let db_json_entity = DbJsonEntity::parse(&json_db_row).unwrap();
+
+        let db_row =
+            Arc::new(db_json_entity.into_db_row(json_db_row, &JsonTimeStamp::from_date_time(now)));
+
+        db_rows.insert(db_row.clone());
+
+        // Next Item
+
+        now.add_seconds(1);
+
+        let raw_json = r#"{
+            "PartitionKey": "test",
+            "RowKey": "test4",
+        }"#
+        .as_bytes()
+        .to_vec();
+
+        let db_json_entity = DbJsonEntity::parse(&raw_json).unwrap();
+
+        let db_row =
+            Arc::new(db_json_entity.into_db_row(raw_json, &JsonTimeStamp::from_date_time(now)));
 
         db_rows.insert(db_row.clone());
 
         let db_rows_to_gc = db_rows.get_rows_to_gc_by_max_amount(3).unwrap();
 
-        assert_eq!("test1", &db_rows_to_gc.get(0).unwrap().row_key);
+        assert_eq!("test1", db_rows_to_gc.get(0).unwrap().get_row_key());
     }
 }

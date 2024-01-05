@@ -4,13 +4,37 @@ use rust_extensions::lazy::LazyVec;
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 
-use crate::db::DbRow;
+use crate::{db::DbRow, ExpirationItem};
 
 use std::{collections::btree_map::Values, sync::Arc};
 
 use super::DbRowsContainer;
 
+#[derive(Clone)]
+pub struct PartitionKey(Arc<String>);
+
+impl PartitionKey {
+    pub fn new(partition_key: String) -> Self {
+        Self(Arc::new(partition_key))
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+
+    pub fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl ExpirationItem for PartitionKey {
+    fn get_id(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
 pub struct DbPartition {
+    pub partition_key: PartitionKey,
     #[cfg(feature = "master-node")]
     pub expires: Option<rust_extensions::date_time::DateTimeAsMicroseconds>,
     pub rows: DbRowsContainer,
@@ -22,8 +46,9 @@ pub struct DbPartition {
 }
 
 impl DbPartition {
-    pub fn new() -> Self {
+    pub fn new(partition_key: String) -> Self {
         Self {
+            partition_key: PartitionKey::new(partition_key),
             rows: DbRowsContainer::new(),
             #[cfg(feature = "master-node")]
             last_read_moment: AtomicDateTimeAsMicroseconds::now(),
@@ -39,7 +64,7 @@ impl DbPartition {
     pub fn get_rows_to_expire(
         &self,
         now: rust_extensions::date_time::DateTimeAsMicroseconds,
-    ) -> Option<Vec<&Arc<DbRow>>> {
+    ) -> Option<Vec<Arc<DbRow>>> {
         self.rows.get_rows_to_expire(now)
     }
 
@@ -53,7 +78,7 @@ impl DbPartition {
 
     #[inline]
     pub fn insert_row(&mut self, db_row: Arc<DbRow>) -> bool {
-        if self.rows.has_db_row(db_row.row_key.as_str()) {
+        if self.rows.has_db_row(db_row.get_row_key()) {
             return false;
         }
 
@@ -63,12 +88,12 @@ impl DbPartition {
 
     #[inline]
     pub fn insert_or_replace_row(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
-        self.content_size += db_row.data.len();
+        self.content_size += db_row.content_len();
 
         let result = self.rows.insert(db_row);
 
         if let Some(removed_item) = result.as_ref() {
-            self.content_size -= removed_item.data.len();
+            self.content_size -= removed_item.content_len();
         }
 
         result
@@ -82,10 +107,10 @@ impl DbPartition {
         let mut result = LazyVec::new();
 
         for db_row in db_rows {
-            self.content_size += db_row.data.len();
+            self.content_size += db_row.content_len();
 
             if let Some(removed_item) = self.rows.insert(db_row.clone()) {
-                self.content_size -= removed_item.data.len();
+                self.content_size -= removed_item.content_len();
                 result.add(removed_item);
             }
         }
@@ -97,7 +122,7 @@ impl DbPartition {
         let result = self.rows.remove(row_key);
 
         if let Some(removed_item) = result.as_ref() {
-            self.content_size -= removed_item.data.len();
+            self.content_size -= removed_item.content_len();
         }
         result
     }
@@ -110,7 +135,7 @@ impl DbPartition {
 
         for row_key in row_keys {
             if let Some(removed_item) = self.rows.remove(row_key) {
-                self.content_size -= removed_item.data.len();
+                self.content_size -= removed_item.content_len();
                 result.add(removed_item);
             }
         }
@@ -147,7 +172,7 @@ impl DbPartition {
 
     pub fn fill_with_json_data(&self, json_array_writer: &mut JsonArrayWriter) {
         for db_row in self.rows.get_all() {
-            json_array_writer.write_raw_element(db_row.data.as_slice());
+            json_array_writer.write_raw_element(db_row.as_slice());
         }
     }
 

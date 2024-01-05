@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use crate::db::PartitionKey;
+
 pub struct DataToGceInner {
     pub partitions: BTreeMap<String, ()>,
     pub db_rows: BTreeMap<String, Vec<String>>,
@@ -24,10 +26,10 @@ impl DataToGc {
         self.inner.as_mut().unwrap()
     }
 
-    pub fn add_partition_to_expire(&mut self, partition_key: &str) {
+    pub fn add_partition_to_expire(&mut self, partition_key: PartitionKey) {
         let inner = self.get_inner();
 
-        if inner.partitions.contains_key(partition_key) {
+        if inner.partitions.contains_key(partition_key.as_str()) {
             return;
         }
 

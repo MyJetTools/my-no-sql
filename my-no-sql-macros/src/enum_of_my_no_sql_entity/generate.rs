@@ -157,6 +157,9 @@ fn get_deserialize_cases(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenSt
 
     result.push(quote::quote! {
         let entity = my_no_sql_sdk::core::db_json_entity::DbJsonEntity::parse(src).unwrap();
+
+        let entity_partition_key = entity.get_partition_key(src);
+        let entity_row_key = entity.get_row_key(src);
     });
 
     for enum_case in enum_cases {
@@ -168,11 +171,11 @@ fn get_deserialize_cases(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenSt
                 result.push(quote::quote! {
 
                     if let Some(row_key) = #model_ident::ROW_KEY{
-                        if entity.partition_key == #model_ident::PARTITION_KEY && entity.row_key == row_key {
+                        if entity_partition_key == #model_ident::PARTITION_KEY && entity_row_key == row_key {
                             return Self::#enum_case_ident(#model_ident::deserialize_entity(src));
                         }
                     }else{
-                        if entity.partition_key == #model_ident::PARTITION_KEY {
+                        if entity_partition_key == #model_ident::PARTITION_KEY {
                             return Self::#enum_case_ident(#model_ident::deserialize_entity(src));
                         }
     
@@ -189,7 +192,7 @@ fn get_deserialize_cases(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenSt
     }
 
     result.push(quote::quote!{
-        panic!("Unknown entity with partition key: {} and row key: {}", entity.partition_key, entity.row_key);
+        panic!("Unknown entity with partition key: {} and row key: {}", entity_partition_key, entity_row_key);
     });
 
     Ok(quote::quote!(#(#result)*))

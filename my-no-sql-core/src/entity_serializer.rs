@@ -25,7 +25,7 @@ where
                 Ok(db_entity) => {
                     panic!(
                         "Table: {}. Can not parse entity with PartitionKey: [{}] and RowKey: [{}]. Err: {:?}",
-                         TMyNoSqlEntity::TABLE_NAME, db_entity.partition_key, db_entity.row_key, err
+                         TMyNoSqlEntity::TABLE_NAME, db_entity.get_partition_key(data), db_entity.get_row_key(data), err
                     );
                 }
                 Err(err) => {

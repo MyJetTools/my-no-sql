@@ -25,7 +25,7 @@ impl DbTable {
     #[cfg(not(feature = "master-node"))]
     pub fn new(name: String) -> Self {
         Self {
-            name,
+            name: name.into(),
             partitions: DbPartitionsContainer::new(),
         }
     }
@@ -52,7 +52,7 @@ impl DbTable {
 
         for db_partition in self.partitions.get_partitions() {
             for db_row in db_partition.get_all_rows() {
-                json_array_writer.write_raw_element(db_row.data.as_slice())
+                json_array_writer.write_raw_element(db_row.as_slice())
             }
         }
 
@@ -81,7 +81,7 @@ impl DbTable {
 
         if let Some(db_partition) = self.partitions.get(partition_key) {
             for db_row in db_partition.get_all_rows() {
-                json_array_writer.write_raw_element(db_row.data.as_slice())
+                json_array_writer.write_raw_element(db_row.as_slice())
             }
         }
 
@@ -112,11 +112,11 @@ impl DbTable {
         db_row: &Arc<DbRow>,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<Arc<DbRow>> {
-        if !self.partitions.has_partition(&db_row.partition_key) {
-            let mut db_partition = DbPartition::new();
+        if !self.partitions.has_partition(db_row.get_partition_key()) {
+            let mut db_partition = DbPartition::new(db_row.get_partition_key().to_string());
             db_partition.insert_or_replace_row(db_row.clone());
 
-            self.partitions.insert(&db_row.partition_key, db_partition);
+            self.partitions.insert(db_partition);
 
             #[cfg(feature = "master-node")]
             if let Some(set_last_write_moment) = set_last_write_moment {
@@ -126,7 +126,7 @@ impl DbTable {
             return None;
         }
 
-        let db_partition = self.partitions.get_mut(&db_row.partition_key).unwrap();
+        let db_partition = self.partitions.get_mut(db_row.get_partition_key()).unwrap();
         let removed_db_row = db_partition.insert_or_replace_row(db_row.clone());
 
         #[cfg(feature = "master-node")]
@@ -144,12 +144,12 @@ impl DbTable {
         db_row: &Arc<DbRow>,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> bool {
-        if !self.partitions.has_partition(&db_row.partition_key) {
+        if !self.partitions.has_partition(db_row.get_partition_key()) {
             self.partitions
-                .insert(&db_row.partition_key, DbPartition::new());
+                .insert(DbPartition::new(db_row.get_partition_key().to_string()));
         }
 
-        let db_partition = self.partitions.get_mut(&db_row.partition_key).unwrap();
+        let db_partition = self.partitions.get_mut(db_row.get_partition_key()).unwrap();
 
         let result = db_partition.insert_row(db_row.clone());
         #[cfg(feature = "master-node")]
@@ -171,7 +171,8 @@ impl DbTable {
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<Vec<Arc<DbRow>>> {
         if !self.partitions.has_partition(partition_key) {
-            self.partitions.insert(partition_key, DbPartition::new());
+            self.partitions
+                .insert(DbPartition::new(partition_key.to_string()));
         }
 
         let db_partition = self.partitions.get_mut(partition_key).unwrap();
@@ -187,8 +188,8 @@ impl DbTable {
     }
 
     #[inline]
-    pub fn init_partition(&mut self, partition_key: String, db_partition: DbPartition) {
-        self.partitions.insert(&partition_key, db_partition);
+    pub fn init_partition(&mut self, db_partition: DbPartition) {
+        self.partitions.insert(db_partition);
     }
 }
 
