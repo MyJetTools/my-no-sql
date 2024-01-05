@@ -133,7 +133,7 @@ impl DbRowsContainer {
         &mut self,
         row_key: &str,
         expiration_time: Option<DateTimeAsMicroseconds>,
-    ) {
+    ) -> Option<Arc<DbRow>> {
         if let Some(db_row) = self.get(row_key).cloned() {
             let old_expires = db_row.update_expires(expiration_time);
 
@@ -141,13 +141,17 @@ impl DbRowsContainer {
                 .add(expiration_time, &db_row);
 
             if are_expires_the_same(old_expires, expiration_time) {
-                return;
+                return None;
             }
 
             if let Some(old_expires) = old_expires {
                 self.rows_with_expiration_index.remove(old_expires, &db_row);
             }
+
+            return Some(db_row);
         }
+
+        None
     }
 }
 
