@@ -30,7 +30,9 @@ impl DbRow {
         #[cfg(feature = "debug_db_row")]
         println!(
             "Created DbRow: PK:{}. RK:{}. Expires{:?}",
-            db_json_entity.partition_key, db_json_entity.row_key, db_json_entity.expires
+            db_json_entity.get_partition_key(raw.as_slice()),
+            db_json_entity.get_row_key(raw.as_slice()),
+            db_json_entity.expires
         );
 
         Self {
@@ -211,8 +213,9 @@ impl crate::ExpirationItem for Arc<DbRow> {
 impl Drop for DbRow {
     fn drop(&mut self) {
         println!(
-            "Dropped DbRow: PK:{}. RK:{}. Expires{:?}",
-            self.partition_key, self.row_key, self.expires
+            "Dropped DbRow: PK:{}. RK:{}",
+            self.get_partition_key(),
+            self.get_row_key(),
         );
     }
 }
