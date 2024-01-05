@@ -37,6 +37,18 @@ impl ExpirationItem for PartitionKey {
     }
 }
 
+impl<'s> Into<PartitionKey> for &'s str {
+    fn into(self) -> PartitionKey {
+        PartitionKey::new(self.to_string())
+    }
+}
+
+impl Into<PartitionKey> for String {
+    fn into(self) -> PartitionKey {
+        PartitionKey::new(self)
+    }
+}
+
 pub struct DbPartition {
     pub partition_key: PartitionKey,
     #[cfg(feature = "master-node")]
