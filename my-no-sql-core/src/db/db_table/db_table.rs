@@ -6,7 +6,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::db::{DbPartition, DbRow};
+use crate::db::{DbPartition, DbRow, PartitionKey};
 
 use super::DbPartitionsContainer;
 #[cfg(feature = "master-node")]
@@ -256,10 +256,10 @@ impl DbTable {
     #[inline]
     pub fn remove_partition(
         &mut self,
-        partition_key: &String,
+        partition_key: &PartitionKey,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<DbPartition> {
-        let removed_partition = self.partitions.remove(partition_key);
+        let removed_partition = self.partitions.remove(partition_key.as_str());
 
         #[cfg(feature = "master-node")]
         if removed_partition.is_some() {
