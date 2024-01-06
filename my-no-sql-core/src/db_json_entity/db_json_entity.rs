@@ -97,7 +97,7 @@ impl DbJsonEntity {
 
     pub fn parse<'s>(
         raw: &'s [u8],
-        time_stamp_to_inject: JsonTimeStamp,
+        time_stamp_to_inject: &'s JsonTimeStamp,
     ) -> Result<DbJsonEntityWithContent<'s>, DbEntityParseFail> {
         let entity = Self::new(raw)?;
 

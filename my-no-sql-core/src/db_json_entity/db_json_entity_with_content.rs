@@ -5,11 +5,11 @@ use super::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp};
 pub struct DbJsonEntityWithContent<'s> {
     entity: DbJsonEntity,
     raw: &'s [u8],
-    time_stamp: JsonTimeStamp,
+    time_stamp: &'s JsonTimeStamp,
 }
 
 impl<'s> DbJsonEntityWithContent<'s> {
-    pub fn new(raw: &'s [u8], time_stamp: JsonTimeStamp, entity: DbJsonEntity) -> Self {
+    pub fn new(raw: &'s [u8], time_stamp: &'s JsonTimeStamp, entity: DbJsonEntity) -> Self {
         Self {
             entity,
             raw,
