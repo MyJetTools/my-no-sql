@@ -111,13 +111,9 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
-
-        let db_row = db_json_entity.into_db_row(test_json, &now);
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
 
         let db_row = Arc::new(db_row);
 
@@ -139,13 +135,9 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
-
-        let db_row = db_json_entity.into_db_row(test_json, &now);
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
 
         let db_row = Arc::new(db_row);
 
@@ -155,13 +147,9 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "AAA": "111"
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
-
-        let db_row2 = db_json_entity.into_db_row(test_json, &now);
+        let db_row2 = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
 
         let db_row2 = Arc::new(db_row2);
 

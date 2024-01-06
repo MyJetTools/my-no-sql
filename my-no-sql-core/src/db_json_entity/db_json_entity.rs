@@ -6,6 +6,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use std::{collections::BTreeMap, sync::Arc};
 
 use super::DbEntityParseFail;
+use super::DbRowContentCompiler;
 use super::JsonKeyValuePosition;
 use super::JsonTimeStamp;
 use super::KeyValueContentPosition;
@@ -14,8 +15,8 @@ use my_json::json_reader::JsonFirstLineReader;
 pub struct DbJsonEntity {
     pub partition_key: JsonKeyValuePosition,
     pub row_key: JsonKeyValuePosition,
-    pub expires: Option<JsonKeyValuePosition>,
     pub time_stamp: Option<JsonKeyValuePosition>,
+    pub expires: Option<JsonKeyValuePosition>,
     pub expires_value: Option<DateTimeAsMicroseconds>,
 }
 
@@ -93,6 +94,84 @@ impl DbJsonEntity {
         return Ok(result);
     }
 
+    pub fn parse_into_db_row(src: &[u8], now: &JsonTimeStamp) -> Result<DbRow, DbEntityParseFail> {
+        let mut partition_key = None;
+        let mut row_key = None;
+        let mut expires = None;
+        let mut time_stamp = None;
+        let mut expires_value = None;
+
+        let mut raw = DbRowContentCompiler::new();
+
+        for line in JsonFirstLineReader::new(&src) {
+            let line = line?;
+
+            let name = line.get_name()?;
+            match name {
+                super::consts::PARTITION_KEY => {
+                    partition_key = Some(raw.append(src, &line));
+                }
+
+                super::consts::ROW_KEY => {
+                    row_key = Some(raw.append(src, &line));
+                    time_stamp = raw
+                        .append_str_value(super::consts::TIME_STAMP, now.as_str())
+                        .into();
+                }
+                super::consts::EXPIRES => {
+                    expires_value = line.get_value()?.as_date_time();
+                    expires = Some(raw.append(src, &line));
+                }
+                super::consts::TIME_STAMP => {}
+                _ => {
+                    if rust_extensions::str_utils::compare_strings_case_insensitive(
+                        name,
+                        super::consts::TIME_STAMP_LOWER_CASE,
+                    ) {
+                    } else {
+                        raw.append(src, &line);
+                    }
+                }
+            }
+        }
+
+        if partition_key.is_none() {
+            return Err(DbEntityParseFail::FieldPartitionKeyIsRequired);
+        }
+
+        let partition_key = partition_key.unwrap();
+
+        if partition_key.key.len() > 255 {
+            return Err(DbEntityParseFail::PartitionKeyIsTooLong);
+        }
+
+        if partition_key.value.is_null(src) {
+            return Err(DbEntityParseFail::FieldPartitionKeyCanNotBeNull);
+        }
+
+        if row_key.is_none() {
+            return Err(DbEntityParseFail::FieldRowKeyIsRequired);
+        }
+
+        let row_key = row_key.unwrap();
+
+        if row_key.value.is_null(src) {
+            return Err(DbEntityParseFail::FieldRowKeyCanNotBeNull);
+        }
+
+        let db_json_entity = Self {
+            partition_key,
+            row_key,
+            expires,
+            time_stamp,
+            expires_value,
+        };
+
+        let result = DbRow::new(db_json_entity, raw.into_vec());
+
+        Ok(result)
+    }
+
     pub fn get_partition_key<'s>(&self, raw: &'s [u8]) -> &'s str {
         self.partition_key.value.get_str_value(raw)
     }
@@ -116,31 +195,10 @@ impl DbJsonEntity {
         None
     }
 
-    pub fn into_db_row(mut self, mut raw: Vec<u8>, inject_time_stamp: &JsonTimeStamp) -> DbRow {
-        self.inject_time_stamp_if_requires(&mut raw, &inject_time_stamp);
-
-        return DbRow::new(
-            self,
-            raw,
-            #[cfg(feature = "master-node")]
-            inject_time_stamp,
-        );
-    }
-
-    pub fn restore_db_row(self, raw: Vec<u8>) -> DbRow {
-        #[cfg(feature = "master-node")]
-        let time_stamp = if let Some(time_stamp) = &self.time_stamp {
-            JsonTimeStamp::parse_or_now(time_stamp.value.get_str_value(&raw))
-        } else {
-            JsonTimeStamp::now()
-        };
-
-        return DbRow::new(
-            self,
-            raw,
-            #[cfg(feature = "master-node")]
-            &time_stamp,
-        );
+    pub fn restore_into_db_row(raw: &[u8]) -> Result<DbRow, DbEntityParseFail> {
+        let db_row = Self::parse(raw)?;
+        let result = DbRow::new(db_row, raw.to_vec());
+        Ok(result)
     }
 
     pub fn parse_as_vec(
@@ -151,9 +209,7 @@ impl DbJsonEntity {
 
         for json in src.split_array_json_to_objects() {
             let json = json?;
-            let db_entity = DbJsonEntity::parse(json)?;
-            let db_row = db_entity.into_db_row(json.to_vec(), inject_time_stamp);
-
+            let db_row = DbJsonEntity::parse_into_db_row(json, inject_time_stamp)?;
             result.push(Arc::new(db_row));
         }
         return Ok(result);
@@ -164,10 +220,8 @@ impl DbJsonEntity {
 
         for json in src.split_array_json_to_objects() {
             let json = json?;
-            let db_entity = DbJsonEntity::parse(json)?;
-            let db_row = db_entity.restore_db_row(json.to_vec());
-
-            result.push(Arc::new(db_row));
+            let db_entity = DbJsonEntity::restore_into_db_row(json)?;
+            result.push(Arc::new(db_entity));
         }
         return Ok(result);
     }
@@ -180,8 +234,7 @@ impl DbJsonEntity {
 
         for json in src.split_array_json_to_objects() {
             let json = json?;
-            let db_entity = DbJsonEntity::parse(json)?;
-            let db_row = db_entity.into_db_row(json.to_vec(), inject_time_stamp);
+            let db_row = DbJsonEntity::parse_into_db_row(json, inject_time_stamp)?;
 
             let partition_key = db_row.get_partition_key();
             if !result.contains_key(partition_key) {
@@ -204,8 +257,7 @@ impl DbJsonEntity {
 
         for json in src.split_array_json_to_objects() {
             let json = json?;
-            let db_entity = DbJsonEntity::parse(json)?;
-            let db_row = db_entity.restore_db_row(json.to_vec());
+            let db_row = DbJsonEntity::restore_into_db_row(json)?;
 
             let partition_key = db_row.get_partition_key();
 
@@ -222,6 +274,7 @@ impl DbJsonEntity {
         return Ok(result);
     }
 
+    /*
     fn inject_time_stamp_if_requires(&mut self, raw: &mut Vec<u8>, time_stamp: &JsonTimeStamp) {
         if self.time_stamp.is_some() {
             self.replace_timestamp_value(raw, time_stamp);
@@ -229,6 +282,7 @@ impl DbJsonEntity {
             self.inject_at_the_end_of_json(raw, time_stamp);
         }
     }
+     */
 
     pub fn replace_timestamp_value(&mut self, raw: &mut Vec<u8>, json_time_stamp: &JsonTimeStamp) {
         let timestamp_value = format!("{dq}{val}{dq}", dq = '"', val = json_time_stamp.as_str());
@@ -330,6 +384,7 @@ pub fn get_the_end_of_the_json(data: &[u8]) -> usize {
 
     panic!("Invalid Json. Can not find the end of json");
 }
+
 #[cfg(test)]
 mod tests {
 
@@ -390,10 +445,8 @@ mod tests {
     pub fn parse_some_case_from_real_life() {
         let src_json = r#"{"value":{"is_enabled":true,"fee_percent":5.0,"min_balance_usd":100.0,"fee_period_days":30,"inactivity_period_days":90},"PartitionKey":"*","RowKey":"*"}"#;
 
-        let result = DbJsonEntity::parse(src_json.as_bytes()).unwrap();
-
         let time_stamp = JsonTimeStamp::now();
-        let db_row = result.into_db_row(src_json.as_bytes().to_vec(), &time_stamp);
+        let db_row = DbJsonEntity::parse_into_db_row(src_json.as_bytes(), &time_stamp).unwrap();
 
         println!("{:?}", std::str::from_utf8(db_row.as_slice()).unwrap());
     }
@@ -433,27 +486,12 @@ mod tests {
             DateTimeAsMicroseconds::parse_iso_string("2022-01-01T12:01:02.123456").unwrap(),
         );
 
-        let mut json = r#"{"PartitionKey":"Pk", "RowKey":"Rk", "timestamp":null}"#
-            .as_bytes()
-            .to_vec();
+        let json = r#"{"PartitionKey":"Pk", "RowKey":"Rk", "timestamp":null}"#;
 
-        let mut db_json_entity = DbJsonEntity::parse(json.as_slice()).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(json.as_bytes(), &json_ts).unwrap();
 
-        let dest_json_result = format!(
-            "{}\"PartitionKey\":\"Pk\", \"RowKey\":\"Rk\", \"TimeStamp\":\"{}\"{}",
-            '{',
-            json_ts.as_str(),
-            '}'
-        );
-
-        db_json_entity.inject_time_stamp_if_requires(&mut json, &json_ts);
-
-        let dest_json = std::str::from_utf8(json.as_slice()).unwrap();
-
-        assert_eq!(db_json_entity.get_partition_key(&json), "Pk",);
-        assert_eq!(db_json_entity.get_row_key(&json), "Rk",);
-
-        assert_eq!(dest_json_result, dest_json);
+        assert_eq!(db_row.get_partition_key(), "Pk",);
+        assert_eq!(db_row.get_row_key(), "Rk",);
     }
 
     #[test]
@@ -462,26 +500,38 @@ mod tests {
             DateTimeAsMicroseconds::parse_iso_string("2022-01-01T12:01:02.123456").unwrap(),
         );
 
-        let mut json = r#"{"PartitionKey":"Pk", "RowKey":"Rk", "timestamp":"12345678901234567890123456789012345678901234567890"}"#
-            .as_bytes()
-            .to_vec();
+        let json = r#"{"PartitionKey":"Pk", "RowKey":"Rk", "timestamp":"12345678901234567890123456789012345678901234567890"}"#;
 
-        let mut db_json_entity = DbJsonEntity::parse(json.as_slice()).unwrap();
+        let db_json_entity = DbJsonEntity::parse_into_db_row(json.as_bytes(), &json_ts).unwrap();
 
-        let dest_json_result = format!(
-            "{}\"PartitionKey\":\"Pk\", \"RowKey\":\"Rk\", \"TimeStamp\":\"{}\"                          {}",
-            '{',
-            json_ts.as_str(),
-            '}'
+        assert_eq!(db_json_entity.get_partition_key(), "Pk",);
+        assert_eq!(db_json_entity.get_row_key(), "Rk",);
+
+        assert_eq!(db_json_entity.get_row_key(), "Rk",);
+    }
+
+    #[test]
+    fn test_we_have_timestamp_before_partition_key() {
+        let test_json = r#"{
+            "Timestamp":"",
+            "PartitionKey": "Pk",
+            "Expires": "2019-01-01T00:00:00",
+            "RowKey": "Rk"}"#;
+
+        let inject_time_stamp = JsonTimeStamp::now();
+
+        let db_row =
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &inject_time_stamp).unwrap();
+
+        assert_eq!(db_row.get_partition_key(), "Pk");
+        assert_eq!(db_row.get_row_key(), "Rk");
+
+        #[cfg(feature = "master-node")]
+        assert_eq!(
+            db_row.get_expires().unwrap().unix_microseconds,
+            DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00")
+                .unwrap()
+                .unix_microseconds
         );
-
-        db_json_entity.inject_time_stamp_if_requires(&mut json, &json_ts);
-
-        let dest_json = std::str::from_utf8(json.as_slice()).unwrap();
-
-        assert_eq!(db_json_entity.get_partition_key(&json), "Pk",);
-        assert_eq!(db_json_entity.get_row_key(&json), "Rk",);
-
-        assert_eq!(dest_json_result, dest_json);
     }
 }

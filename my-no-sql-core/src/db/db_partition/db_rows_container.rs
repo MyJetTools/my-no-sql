@@ -191,15 +191,14 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
+        let time_stamp = JsonTimeStamp::now();
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
-        let time_stamp = JsonTimeStamp::now();
-        db_rows.insert(Arc::new(db_json_entity.into_db_row(test_json, &time_stamp)));
+
+        db_rows.insert(Arc::new(db_row));
 
         assert_eq!(1, db_rows.rows_with_expiration_index.len())
     }
@@ -209,15 +208,14 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
+        let time_stamp = JsonTimeStamp::now();
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
-        let time_stamp = JsonTimeStamp::now();
-        db_rows.insert(Arc::new(db_json_entity.into_db_row(test_json, &time_stamp)));
+
+        db_rows.insert(Arc::new(db_row));
 
         assert_eq!(0, db_rows.rows_with_expiration_index.len())
     }
@@ -228,15 +226,13 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00"
-        }"#
-        .as_bytes()
-        .to_vec();
-
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
+        }"#;
+        let time_stamp = JsonTimeStamp::now();
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
-        let time_stamp = JsonTimeStamp::now();
-        db_rows.insert(Arc::new(db_json_entity.into_db_row(test_json, &time_stamp)));
+
+        db_rows.insert(Arc::new(db_row));
 
         db_rows.remove("test");
 
@@ -248,15 +244,15 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test"
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
+        let time_stamp = JsonTimeStamp::now();
+
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
-        let time_stamp = JsonTimeStamp::now();
-        db_rows.insert(Arc::new(db_json_entity.into_db_row(test_json, &time_stamp)));
+
+        db_rows.insert(Arc::new(db_row));
 
         assert_eq!(0, db_rows.rows_with_expiration_index.len());
 
@@ -279,18 +275,14 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
+        let time_stamp = JsonTimeStamp::now();
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
-        let time_stamp = JsonTimeStamp::now();
-
-        let db_row = Arc::new(db_json_entity.into_db_row(test_json, &time_stamp));
-        db_rows.insert(db_row.clone());
+        db_rows.insert(Arc::new(db_row));
 
         let current_expiration = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
 
@@ -321,15 +313,12 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#
-        .as_bytes()
-        .to_vec();
-
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
+        }"#;
 
         let now = JsonTimeStamp::now();
-        let db_row = Arc::new(db_json_entity.into_db_row(test_json, &now));
-        db_rows.insert(db_row.clone());
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+
+        db_rows.insert(Arc::new(db_row));
 
         let current_expiration = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
 
@@ -353,16 +342,13 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#
-        .as_bytes()
-        .to_vec();
-
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
+        }"#;
 
         let now = JsonTimeStamp::now();
 
-        let db_row = Arc::new(db_json_entity.into_db_row(test_json, &now));
-        db_rows.insert(db_row.clone());
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+
+        db_rows.insert(Arc::new(db_row));
 
         let mut now = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
         now.unix_microseconds -= 1;
@@ -380,16 +366,12 @@ mod tests {
             "PartitionKey": "test",
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00",
-        }"#
-        .as_bytes()
-        .to_vec();
-
-        let db_json_entity = DbJsonEntity::parse(&test_json).unwrap();
-
+        }"#;
         let now = JsonTimeStamp::now();
 
-        let db_row = Arc::new(db_json_entity.into_db_row(test_json, &now));
-        db_rows.insert(db_row.clone());
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+
+        db_rows.insert(Arc::new(db_row));
 
         let now = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
 
@@ -407,16 +389,13 @@ mod tests {
         let json = r#"{
             "PartitionKey": "test",
             "RowKey": "test1",
-        }"#
-        .as_bytes()
-        .to_vec();
-
-        let db_json_entity = DbJsonEntity::parse(&json).unwrap();
+        }"#;
 
         let db_row =
-            Arc::new(db_json_entity.into_db_row(json, &JsonTimeStamp::from_date_time(now)));
+            DbJsonEntity::parse_into_db_row(json.as_bytes(), &JsonTimeStamp::from_date_time(now))
+                .unwrap();
 
-        db_rows.insert(db_row.clone());
+        db_rows.insert(Arc::new(db_row));
 
         // Next Item
 
@@ -425,16 +404,15 @@ mod tests {
         let raw_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test2",
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&raw_json).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(
+            raw_json.as_bytes(),
+            &JsonTimeStamp::from_date_time(now),
+        )
+        .unwrap();
 
-        let db_row =
-            Arc::new(db_json_entity.into_db_row(raw_json, &JsonTimeStamp::from_date_time(now)));
-
-        db_rows.insert(db_row.clone());
+        db_rows.insert(Arc::new(db_row));
 
         // Next Item
 
@@ -443,16 +421,15 @@ mod tests {
         let json_db_row = r#"{
             "PartitionKey": "test",
             "RowKey": "test3",
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&json_db_row).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(
+            json_db_row.as_bytes(),
+            &JsonTimeStamp::from_date_time(now),
+        )
+        .unwrap();
 
-        let db_row =
-            Arc::new(db_json_entity.into_db_row(json_db_row, &JsonTimeStamp::from_date_time(now)));
-
-        db_rows.insert(db_row.clone());
+        db_rows.insert(Arc::new(db_row));
 
         // Next Item
 
@@ -461,16 +438,15 @@ mod tests {
         let raw_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test4",
-        }"#
-        .as_bytes()
-        .to_vec();
+        }"#;
 
-        let db_json_entity = DbJsonEntity::parse(&raw_json).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(
+            raw_json.as_bytes(),
+            &JsonTimeStamp::from_date_time(now),
+        )
+        .unwrap();
 
-        let db_row =
-            Arc::new(db_json_entity.into_db_row(raw_json, &JsonTimeStamp::from_date_time(now)));
-
-        db_rows.insert(db_row.clone());
+        db_rows.insert(Arc::new(db_row));
 
         let db_rows_to_gc = db_rows.get_rows_to_gc_by_max_amount(3).unwrap();
 

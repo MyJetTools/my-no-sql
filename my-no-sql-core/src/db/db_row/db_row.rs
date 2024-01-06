@@ -16,17 +16,13 @@ pub struct DbRow {
     #[cfg(feature = "master-node")]
     expires: Option<crate::db_json_entity::JsonKeyValuePosition>,
     #[cfg(feature = "master-node")]
-    pub time_stamp: String,
+    pub time_stamp: crate::db_json_entity::KeyValueContentPosition,
     #[cfg(feature = "master-node")]
     pub last_read_access: AtomicDateTimeAsMicroseconds,
 }
 
 impl DbRow {
-    pub fn new(
-        db_json_entity: DbJsonEntity,
-        raw: Vec<u8>,
-        #[cfg(feature = "master-node")] time_stamp: &crate::db_json_entity::JsonTimeStamp,
-    ) -> Self {
+    pub fn new(db_json_entity: DbJsonEntity, raw: Vec<u8>) -> Self {
         #[cfg(feature = "debug_db_row")]
         println!(
             "Created DbRow: PK:{}. RK:{}. Expires{:?}",
@@ -35,12 +31,18 @@ impl DbRow {
             db_json_entity.expires
         );
 
+        #[cfg(feature = "master-node")]
+        let time_stamp = db_json_entity.time_stamp.unwrap();
+        #[cfg(feature = "master-node")]
+        let time_stamp_value =
+            DateTimeAsMicroseconds::from_str(time_stamp.value.get_str_value(&raw)).unwrap();
+
         Self {
             raw,
             partition_key: db_json_entity.partition_key.value,
             row_key: db_json_entity.row_key.value,
             #[cfg(feature = "master-node")]
-            time_stamp: time_stamp.as_str().to_string(),
+            time_stamp: time_stamp.value,
             #[cfg(feature = "master-node")]
             expires_value: if let Some(expires_value) = db_json_entity.expires_value {
                 AtomicDateTimeAsMicroseconds::new(expires_value.unix_microseconds)
@@ -50,9 +52,7 @@ impl DbRow {
             #[cfg(feature = "master-node")]
             expires: db_json_entity.expires,
             #[cfg(feature = "master-node")]
-            last_read_access: AtomicDateTimeAsMicroseconds::new(
-                time_stamp.date_time.unix_microseconds,
-            ),
+            last_read_access: AtomicDateTimeAsMicroseconds::new(time_stamp_value.unix_microseconds),
         }
     }
 
@@ -64,6 +64,9 @@ impl DbRow {
         self.row_key.get_str_value(&self.raw)
     }
 
+    pub fn get_time_stamp(&self) -> &str {
+        self.row_key.get_str_value(&self.raw)
+    }
     pub fn as_slice(&self) -> &[u8] {
         self.raw.as_slice()
     }
