@@ -196,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    pub fn parse_some_reallife_data_case_2() {
+    pub fn parse_some_real_life_data_case_2() {
         println!("{:?}", std::env::current_dir().unwrap());
         let mut src_file = File::open("./test/test_case_2.json").unwrap();
 

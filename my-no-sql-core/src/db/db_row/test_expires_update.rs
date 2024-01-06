@@ -25,7 +25,7 @@ mod test {
 
         db_row.write_json(&mut result_json);
 
-        let result_entity = DbJsonEntity::parse(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(&result_json).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "TestPk");
         assert_eq!(result_entity.get_row_key(&result_json), "TestRk");
@@ -55,7 +55,7 @@ mod test {
 
         db_row.write_json(&mut result_json);
 
-        let result_entity = DbJsonEntity::parse(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(&result_json).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");
@@ -83,7 +83,7 @@ mod test {
 
         println!("Result: {}", std::str::from_utf8(&result_json).unwrap());
 
-        let result_entity = DbJsonEntity::parse(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(&result_json).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");
@@ -107,7 +107,7 @@ mod test {
 
         println!("Result: {}", std::str::from_utf8(&result_json).unwrap());
 
-        let result_entity = DbJsonEntity::parse(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(&result_json).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");
@@ -131,7 +131,7 @@ mod test {
 
         println!("Result: {}", std::str::from_utf8(&result_json).unwrap());
 
-        let result_entity = DbJsonEntity::parse(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(&result_json).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");
@@ -162,7 +162,7 @@ mod test {
             result_json.len()
         );
 
-        let result_entity = DbJsonEntity::parse(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(&result_json).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");

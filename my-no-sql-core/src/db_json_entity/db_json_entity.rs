@@ -6,6 +6,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use std::{collections::BTreeMap, sync::Arc};
 
 use super::DbEntityParseFail;
+use super::DbJsonEntityWithContent;
 use super::DbRowContentCompiler;
 use super::JsonKeyValuePosition;
 use super::JsonTimeStamp;
@@ -21,7 +22,7 @@ pub struct DbJsonEntity {
 }
 
 impl DbJsonEntity {
-    pub fn parse(raw: &[u8]) -> Result<Self, DbEntityParseFail> {
+    pub fn new(raw: &[u8]) -> Result<Self, DbEntityParseFail> {
         let mut partition_key = None;
         let mut row_key = None;
         let mut expires = None;
@@ -29,7 +30,7 @@ impl DbJsonEntity {
 
         let mut expires_value = None;
 
-        for line in JsonFirstLineReader::new(&raw) {
+        for line in JsonFirstLineReader::new(raw) {
             let line = line?;
 
             let name = line.get_name()?;
@@ -91,7 +92,20 @@ impl DbJsonEntity {
             expires_value,
         };
 
-        return Ok(result);
+        Ok(result)
+    }
+
+    pub fn parse<'s>(
+        raw: &'s [u8],
+        time_stamp_to_inject: JsonTimeStamp,
+    ) -> Result<DbJsonEntityWithContent<'s>, DbEntityParseFail> {
+        let entity = Self::new(raw)?;
+
+        return Ok(DbJsonEntityWithContent::new(
+            raw,
+            time_stamp_to_inject,
+            entity,
+        ));
     }
 
     pub fn parse_into_db_row(src: &[u8], now: &JsonTimeStamp) -> Result<DbRow, DbEntityParseFail> {
@@ -196,7 +210,7 @@ impl DbJsonEntity {
     }
 
     pub fn restore_into_db_row(raw: &[u8]) -> Result<DbRow, DbEntityParseFail> {
-        let db_row = Self::parse(raw)?;
+        let db_row = Self::new(raw)?;
         let result = DbRow::new(db_row, raw.to_vec());
         Ok(result)
     }
@@ -403,7 +417,7 @@ mod tests {
             "Expires": "2022-03-17T13:28:29.6537478Z"
           }"#;
 
-        let entity = DbJsonEntity::parse(src_json.as_bytes()).unwrap();
+        let entity = DbJsonEntity::new(src_json.as_bytes()).unwrap();
 
         let expires = entity.expires_value.as_ref().unwrap();
 
@@ -434,7 +448,7 @@ mod tests {
             "Expires": "2022-03-17T13:28:29.6537478Z"
           }"#;
 
-        let result = DbJsonEntity::parse(src_json.as_bytes());
+        let result = DbJsonEntity::new(src_json.as_bytes());
 
         if let Err(DbEntityParseFail::FieldPartitionKeyCanNotBeNull) = result {
         } else {
@@ -462,7 +476,7 @@ mod tests {
 
         let mut json = r#"{"PartitionKey":"PK", "RowKey":"RK"}     "#.as_bytes().to_vec();
 
-        let mut db_json_entity = DbJsonEntity::parse(json.as_slice()).unwrap();
+        let mut db_json_entity = DbJsonEntity::new(json.as_slice()).unwrap();
 
         db_json_entity.inject_at_the_end_of_json(&mut json, &json_ts);
 

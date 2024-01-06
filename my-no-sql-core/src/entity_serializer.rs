@@ -19,7 +19,7 @@ where
     match parse_result {
         Ok(el) => return el,
         Err(err) => {
-            let db_entity = DbJsonEntity::parse(data);
+            let db_entity = DbJsonEntity::new(data);
 
             match db_entity {
                 Ok(db_entity) => {

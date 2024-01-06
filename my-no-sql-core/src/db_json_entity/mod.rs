@@ -11,3 +11,5 @@ pub use json_key_value_position::*;
 pub use json_time_stamp::JsonTimeStamp;
 mod db_row_content_compiler;
 pub use db_row_content_compiler::*;
+mod db_json_entity_with_content;
+pub use db_json_entity_with_content::*;
