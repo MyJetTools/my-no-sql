@@ -288,16 +288,6 @@ impl DbJsonEntity {
         return Ok(result);
     }
 
-    /*
-    fn inject_time_stamp_if_requires(&mut self, raw: &mut Vec<u8>, time_stamp: &JsonTimeStamp) {
-        if self.time_stamp.is_some() {
-            self.replace_timestamp_value(raw, time_stamp);
-        } else {
-            self.inject_at_the_end_of_json(raw, time_stamp);
-        }
-    }
-     */
-
     pub fn replace_timestamp_value(&mut self, raw: &mut Vec<u8>, json_time_stamp: &JsonTimeStamp) {
         let timestamp_value = format!("{dq}{val}{dq}", dq = '"', val = json_time_stamp.as_str());
 

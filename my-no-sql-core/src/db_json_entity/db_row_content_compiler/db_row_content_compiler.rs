@@ -1,16 +1,18 @@
 use my_json::json_reader::JsonFirstLine;
 
-use super::{JsonKeyValuePosition, KeyValueContentPosition};
+use crate::db_json_entity::{JsonKeyValuePosition, KeyValueContentPosition};
+
+use super::ContentCompiler;
 
 pub struct DbRowContentCompiler {
     first_line: bool,
-    pub content: Vec<u8>,
+    pub content: ContentCompiler,
 }
 
 impl DbRowContentCompiler {
     pub fn new() -> Self {
         Self {
-            content: Vec::new(),
+            content: ContentCompiler::new(),
             first_line: false,
         }
     }
@@ -83,6 +85,6 @@ impl DbRowContentCompiler {
 
     pub fn into_vec(mut self) -> Vec<u8> {
         self.content.push(b'}');
-        self.content
+        self.content.into_vec()
     }
 }
