@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use my_json::json_writer::JsonObject;
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 #[cfg(feature = "master-node")]
@@ -67,12 +68,8 @@ impl DbRow {
     pub fn get_time_stamp(&self) -> &str {
         self.row_key.get_str_value(&self.raw)
     }
-    pub fn as_slice(&self) -> &[u8] {
+    pub fn get_src_as_slice(&self) -> &[u8] {
         self.raw.as_slice()
-    }
-
-    pub fn content_len(&self) -> usize {
-        self.raw.len()
     }
 
     #[cfg(feature = "master-node")]
@@ -106,7 +103,7 @@ impl DbRow {
         }
     }
     #[cfg(feature = "master-node")]
-    pub fn compile_json(&self, out: &mut Vec<u8>) {
+    pub fn write_json(&self, out: &mut Vec<u8>) {
         let expires_value = self.get_expires();
 
         if expires_value.is_none() {
@@ -152,8 +149,14 @@ impl DbRow {
     }
 
     #[cfg(not(feature = "master-node"))]
-    pub fn compile_json(&self, out: &mut Vec<u8>) {
+    pub fn write_json(&self, out: &mut Vec<u8>) {
         out.extend_from_slice(&self.raw);
+    }
+
+    pub fn to_vec(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+        self.write_json(&mut result);
+        result
     }
 }
 
@@ -204,6 +207,12 @@ fn find_json_separator_after(src: &[u8], pos: usize) -> Option<usize> {
     }
 
     None
+}
+
+impl JsonObject for &'_ DbRow {
+    fn write_into(&self, dest: &mut Vec<u8>) {
+        self.write_json(dest)
+    }
 }
 
 impl crate::ExpirationItem for Arc<DbRow> {

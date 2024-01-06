@@ -119,7 +119,7 @@ mod tests {
 
         db_table.insert_row(&db_row, None);
 
-        assert_eq!(db_table.get_table_size(), db_row.content_len());
+        assert_eq!(db_table.get_table_size(), db_row.get_src_as_slice().len());
         assert_eq!(db_table.get_partitions_amount(), 1);
     }
 
@@ -155,7 +155,7 @@ mod tests {
 
         db_table.insert_or_replace_row(&db_row2, None);
 
-        assert_eq!(db_table.get_table_size(), db_row2.content_len());
+        assert_eq!(db_table.get_table_size(), db_row2.get_src_as_slice().len());
         assert_eq!(db_table.get_partitions_amount(), 1);
     }
 }

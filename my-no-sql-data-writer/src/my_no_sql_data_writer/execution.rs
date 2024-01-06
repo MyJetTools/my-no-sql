@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use flurl::{FlUrl, FlUrlResponse};
-use my_json::{json_reader::array_parser::JsonArrayIterator, json_writer::JsonArrayWriter};
+use my_json::{
+    json_reader::array_parser::JsonArrayIterator,
+    json_writer::{JsonArrayWriter, RawJsonObject},
+};
 use my_logger::LogEventCtx;
 use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity};
 
@@ -452,7 +455,9 @@ fn serialize_entities_to_body<TEntity: MyNoSqlEntity>(entities: &[TEntity]) -> O
     let mut json_array_writer = JsonArrayWriter::new();
 
     for entity in entities {
-        json_array_writer.write_raw_element(entity.serialize_entity().as_slice());
+        let payload = entity.serialize_entity();
+        let payload: RawJsonObject = payload.into();
+        json_array_writer.write(payload);
     }
 
     Some(json_array_writer.build())

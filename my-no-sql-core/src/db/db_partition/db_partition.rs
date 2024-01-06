@@ -1,4 +1,4 @@
-use my_json::json_writer::JsonArrayWriter;
+use my_json::json_writer::JsonObject;
 use rust_extensions::lazy::LazyVec;
 
 #[cfg(feature = "master-node")]
@@ -104,12 +104,12 @@ impl DbPartition {
 
     #[inline]
     pub fn insert_or_replace_row(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
-        self.content_size += db_row.content_len();
+        self.content_size += db_row.get_src_as_slice().len();
 
         let result = self.rows.insert(db_row);
 
         if let Some(removed_item) = result.as_ref() {
-            self.content_size -= removed_item.content_len();
+            self.content_size -= removed_item.get_src_as_slice().len();
         }
 
         result
@@ -123,10 +123,10 @@ impl DbPartition {
         let mut result = LazyVec::new();
 
         for db_row in db_rows {
-            self.content_size += db_row.content_len();
+            self.content_size += db_row.get_src_as_slice().len();
 
             if let Some(removed_item) = self.rows.insert(db_row.clone()) {
-                self.content_size -= removed_item.content_len();
+                self.content_size -= removed_item.get_src_as_slice().len();
                 result.add(removed_item);
             }
         }
@@ -138,7 +138,7 @@ impl DbPartition {
         let result = self.rows.remove(row_key);
 
         if let Some(removed_item) = result.as_ref() {
-            self.content_size -= removed_item.content_len();
+            self.content_size -= removed_item.get_src_as_slice().len();
         }
         result
     }
@@ -151,7 +151,7 @@ impl DbPartition {
 
         for row_key in row_keys {
             if let Some(removed_item) = self.rows.remove(row_key) {
-                self.content_size -= removed_item.content_len();
+                self.content_size -= removed_item.get_src_as_slice().len();
                 result.add(removed_item);
             }
         }
@@ -186,12 +186,6 @@ impl DbPartition {
         Some(result.clone())
     }
 
-    pub fn fill_with_json_data(&self, json_array_writer: &mut JsonArrayWriter) {
-        for db_row in self.rows.get_all() {
-            json_array_writer.write_raw_element(db_row.as_slice());
-        }
-    }
-
     pub fn get_highest_row_and_below(
         &self,
         row_key: &String,
@@ -217,5 +211,21 @@ impl DbPartition {
 
     pub fn get_last_read_moment(&self) -> rust_extensions::date_time::DateTimeAsMicroseconds {
         self.last_read_moment.as_date_time()
+    }
+}
+
+impl JsonObject for &'_ DbPartition {
+    fn write_into(&self, dest: &mut Vec<u8>) {
+        let mut first_element = true;
+        dest.push(b'[');
+        for db_row in self.rows.get_all() {
+            if first_element {
+                first_element = false;
+            } else {
+                dest.push(b',');
+            }
+            db_row.as_ref().write_into(dest)
+        }
+        dest.push(b']');
     }
 }

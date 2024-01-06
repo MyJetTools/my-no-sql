@@ -448,7 +448,10 @@ mod tests {
         let time_stamp = JsonTimeStamp::now();
         let db_row = DbJsonEntity::parse_into_db_row(src_json.as_bytes(), &time_stamp).unwrap();
 
-        println!("{:?}", std::str::from_utf8(db_row.as_slice()).unwrap());
+        println!(
+            "{:?}",
+            std::str::from_utf8(db_row.get_src_as_slice()).unwrap()
+        );
     }
 
     #[test]

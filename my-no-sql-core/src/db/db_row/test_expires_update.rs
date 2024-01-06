@@ -23,7 +23,7 @@ mod test {
 
         let mut result_json = Vec::new();
 
-        db_row.compile_json(&mut result_json);
+        db_row.write_json(&mut result_json);
 
         let result_entity = DbJsonEntity::parse(&result_json).unwrap();
 
@@ -53,7 +53,7 @@ mod test {
 
         let mut result_json = Vec::new();
 
-        db_row.compile_json(&mut result_json);
+        db_row.write_json(&mut result_json);
 
         let result_entity = DbJsonEntity::parse(&result_json).unwrap();
 
@@ -79,7 +79,7 @@ mod test {
 
         let mut result_json = Vec::new();
 
-        db_row.compile_json(&mut result_json);
+        db_row.write_json(&mut result_json);
 
         println!("Result: {}", std::str::from_utf8(&result_json).unwrap());
 
@@ -103,7 +103,7 @@ mod test {
 
         let mut result_json = Vec::new();
 
-        db_row.compile_json(&mut result_json);
+        db_row.write_json(&mut result_json);
 
         println!("Result: {}", std::str::from_utf8(&result_json).unwrap());
 
@@ -127,7 +127,7 @@ mod test {
 
         let mut result_json = Vec::new();
 
-        db_row.compile_json(&mut result_json);
+        db_row.write_json(&mut result_json);
 
         println!("Result: {}", std::str::from_utf8(&result_json).unwrap());
 
@@ -154,7 +154,7 @@ mod test {
 
         let mut result_json = Vec::new();
 
-        db_row.compile_json(&mut result_json);
+        db_row.write_json(&mut result_json);
 
         println!(
             "Result: {}. Len: {}",

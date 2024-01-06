@@ -3,13 +3,12 @@ mod db_table;
 mod db_table_attributes;
 
 #[cfg(feature = "master-node")]
-mod db_table_master_node;
+pub mod db_table_master_node;
 #[cfg(feature = "master-node")]
 pub use db_table_attributes::DbTableAttributes;
 
 pub use db_table::DbTable;
-#[cfg(feature = "master-node")]
-pub use db_table_master_node::*;
+
 #[cfg(feature = "master-node")]
 mod data_to_gc;
 #[cfg(feature = "master-node")]

@@ -52,7 +52,7 @@ impl DbTable {
 
         for db_partition in self.partitions.get_partitions() {
             for db_row in db_partition.get_all_rows() {
-                json_array_writer.write_raw_element(db_row.as_slice())
+                json_array_writer.write(db_row.as_ref())
             }
         }
 
@@ -81,7 +81,7 @@ impl DbTable {
 
         if let Some(db_partition) = self.partitions.get(partition_key) {
             for db_row in db_partition.get_all_rows() {
-                json_array_writer.write_raw_element(db_row.as_slice())
+                json_array_writer.write(db_row.as_ref())
             }
         }
 
