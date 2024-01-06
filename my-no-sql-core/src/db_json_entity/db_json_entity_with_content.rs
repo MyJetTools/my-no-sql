@@ -29,6 +29,10 @@ impl<'s> DbJsonEntityWithContent<'s> {
         self.entity.get_expires(self.raw)
     }
 
+    pub fn get_time_stamp(&self) -> Option<&str> {
+        self.entity.get_time_stamp(self.raw)
+    }
+
     pub fn into_db_row(self) -> Result<DbRow, DbEntityParseFail> {
         DbJsonEntity::parse_into_db_row(self.raw, &self.time_stamp)
     }
