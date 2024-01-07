@@ -2,17 +2,28 @@ use my_json::json_reader::JsonFirstLine;
 
 use crate::db_json_entity::{JsonKeyValuePosition, KeyValueContentPosition};
 
+use super::{content_compiler::ContentCompiler, SMALL_COMPILER_MAX_SIZE};
+
 pub struct DbRowContentCompiler {
     first_line: bool,
-    pub content: Vec<u8>,
+    pub content: ContentCompiler,
 }
 
 impl DbRowContentCompiler {
     pub fn new(expected_size: usize) -> Self {
+        if expected_size <= SMALL_COMPILER_MAX_SIZE {
+            return Self {
+                content: ContentCompiler::new(),
+                first_line: false,
+            };
+        }
+
         let mut content = Vec::new();
-        content.shrink_to(expected_size + 16);
+
+        content.shrink_to(expected_size + 32);
+
         Self {
-            content,
+            content: ContentCompiler::Big(content),
             first_line: false,
         }
     }
@@ -85,7 +96,6 @@ impl DbRowContentCompiler {
 
     pub fn into_vec(mut self) -> Vec<u8> {
         self.content.push(b'}');
-        self.content.shrink_to_fit();
-        self.content
+        self.content.into_vec()
     }
 }

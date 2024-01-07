@@ -1,4 +1,4 @@
-pub const SMALL_COMPILER_MAX_SIZE: usize = 512;
+pub const SMALL_COMPILER_MAX_SIZE: usize = 4096;
 pub struct SmallContentCompiler {
     content: [u8; SMALL_COMPILER_MAX_SIZE],
     len: usize,
