@@ -12,7 +12,7 @@ impl ContentCompiler {
 
     fn unwrap_as_big(&mut self) -> &mut Vec<u8> {
         match self {
-            Self::Small(small) => {
+            Self::Small(_) => {
                 panic!("unwrap_as_big")
             }
             Self::Big(vec) => return vec,
