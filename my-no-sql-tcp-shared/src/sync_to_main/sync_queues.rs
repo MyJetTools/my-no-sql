@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rust_extensions::{date_time::DateTimeAsMicroseconds, events_loop::EventsLoop};
+use rust_extensions::{date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, Logger};
 use tokio::sync::Mutex;
 
 use super::{sync_to_main_node_event::SyncToMainNodeEvent, *};
@@ -103,10 +103,10 @@ pub struct SyncToMainNodeQueues {
 }
 
 impl SyncToMainNodeQueues {
-    pub fn new() -> Self {
+    pub fn new(logger: Arc<dyn Logger + Send + Sync + 'static>) -> Self {
         Self {
             inner: Mutex::new(SyncQueuesInner::new()),
-            event_loop: EventsLoop::new("SyncToMainNodeQueues".to_string()),
+            event_loop: EventsLoop::new("SyncToMainNodeQueues".to_string(), logger),
         }
     }
 

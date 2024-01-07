@@ -3,11 +3,11 @@ use std::sync::Arc;
 use my_no_sql_tcp_shared::{
     sync_to_main::SyncToMainNodeHandler, MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract,
 };
-use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
+use my_tcp_sockets::{tcp_connection::TcpSocketConnection, ConnectionEvent, SocketEventCallback};
 
 use crate::subscribers::Subscribers;
 
-pub type TcpConnection = SocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>;
+pub type TcpConnection = TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>;
 pub struct TcpEvents {
     app_name: String,
     pub subscribers: Subscribers,
@@ -113,14 +113,14 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for Tcp
                     name: self.app_name.to_string(),
                 };
 
-                connection.send(contract).await;
+                connection.send(&contract).await;
 
                 for table in self.subscribers.get_tables_to_subscribe().await {
                     let contract = MyNoSqlTcpContract::Subscribe {
                         table_name: table.to_string(),
                     };
 
-                    connection.send(contract).await;
+                    connection.send(&contract).await;
                 }
 
                 self.sync_handler

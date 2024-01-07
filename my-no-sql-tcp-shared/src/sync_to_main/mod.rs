@@ -15,7 +15,7 @@ pub use update_partitions_last_read_time_queue::*;
 pub use update_rows_expiration_time_queue::*;
 pub use update_rows_last_read_time_queue::*;
 
-type DataReaderTcpConnection = my_tcp_sockets::tcp_connection::SocketConnection<
+type DataReaderTcpConnection = my_tcp_sockets::tcp_connection::TcpSocketConnection<
     crate::MyNoSqlTcpContract,
     crate::MyNoSqlReaderTcpSerializer,
 >;

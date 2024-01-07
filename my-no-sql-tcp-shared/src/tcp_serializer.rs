@@ -15,21 +15,14 @@ impl MyNoSqlReaderTcpSerializer {
 
 #[async_trait::async_trait]
 impl TcpSocketSerializer<MyNoSqlTcpContract> for MyNoSqlReaderTcpSerializer {
-    const PING_PACKET_IS_SINGLETONE: bool = true;
-    fn serialize(&self, contract: MyNoSqlTcpContract) -> Vec<u8> {
-        contract.serialize()
-    }
+    const PING_PACKET_IS_SINGLETON: bool = true;
 
-    fn serialize_ref(&self, contract: &MyNoSqlTcpContract) -> Vec<u8> {
+    fn serialize(&self, contract: &MyNoSqlTcpContract) -> Vec<u8> {
         contract.serialize()
     }
 
     fn get_ping(&self) -> MyNoSqlTcpContract {
         MyNoSqlTcpContract::Ping
-    }
-
-    fn apply_packet(&mut self, _: &MyNoSqlTcpContract) -> bool {
-        false
     }
 
     async fn deserialize<TSocketReader: Send + Sync + 'static + SocketReader>(

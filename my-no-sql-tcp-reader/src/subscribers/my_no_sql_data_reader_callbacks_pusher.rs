@@ -31,15 +31,16 @@ where
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
     ) -> Self {
         let events_loop_reader = MyNoSqlDataReaderCallBacksSender::new(callbacks, None);
-        let events_loop = EventsLoop::new("MyNoSqlDataReaderCallBacksPusher".to_string());
+        let events_loop = EventsLoop::new(
+            "MyNoSqlDataReaderCallBacksPusher".to_string(),
+            my_logger::LOGGER.clone(),
+        );
 
         events_loop
             .register_event_loop(Arc::new(events_loop_reader))
             .await;
 
-        events_loop
-            .start(app_states, my_logger::LOGGER.clone())
-            .await;
+        events_loop.start(app_states).await;
         Self { events_loop }
     }
 
@@ -100,6 +101,7 @@ impl<
     > EventsLoopTick<PusherEvents<TMyNoSqlEntity>>
     for MyNoSqlDataReaderCallBacksSender<TMyNoSqlEntity, TMyNoSqlDataReaderCallBacks>
 {
+    async fn started(&self) {}
     async fn tick(&self, model: PusherEvents<TMyNoSqlEntity>) {
         match model {
             PusherEvents::InsertedOrReplaced(partition_key, entities) => {
@@ -115,4 +117,6 @@ impl<
         }
         if self.item.is_some() {}
     }
+
+    async fn finished(&self) {}
 }

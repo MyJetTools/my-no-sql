@@ -32,6 +32,7 @@ impl MyNoSqlTcpConnection {
     pub fn new(
         app_name: impl Into<StrOrString<'static>>,
         settings: Arc<dyn MyNoSqlTcpConnectionSettings + Sync + Send + 'static>,
+        logger: Arc<dyn Logger + Send + Sync + 'static>,
     ) -> Self {
         let settings = TcpConnectionSettings { settings };
 
@@ -43,7 +44,7 @@ impl MyNoSqlTcpConnection {
             connect_timeout: Duration::from_secs(3),
             tcp_events: Arc::new(TcpEvents::new(
                 app_name.to_string(),
-                Arc::new(SyncToMainNodeHandler::new()),
+                Arc::new(SyncToMainNodeHandler::new(logger)),
             )),
             app_states: Arc::new(AppStates::create_un_initialized()),
         }
@@ -61,7 +62,7 @@ impl MyNoSqlTcpConnection {
             .await
     }
 
-    pub async fn start(&self, logger: Arc<impl Logger + Send + Sync + 'static>) {
+    pub async fn start(&self) {
         self.app_states.set_initialized();
 
         self.tcp_client
@@ -74,7 +75,7 @@ impl MyNoSqlTcpConnection {
 
         self.tcp_events
             .sync_handler
-            .start(self.app_states.clone(), logger)
+            .start(self.app_states.clone())
             .await;
     }
 }
