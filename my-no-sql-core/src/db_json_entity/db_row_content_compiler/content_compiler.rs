@@ -6,11 +6,7 @@ pub enum ContentCompiler {
 }
 
 impl ContentCompiler {
-    pub fn new(current_size: usize) -> Self {
-        if current_size <= SMALL_COMPILER_MAX_SIZE {
-            return Self::Small(SmallContentCompiler::new());
-        }
-
+    pub fn new(_current_size: usize) -> Self {
         Self::Big(Vec::new())
     }
 
