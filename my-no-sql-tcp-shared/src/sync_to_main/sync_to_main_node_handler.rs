@@ -11,26 +11,19 @@ pub struct SyncToMainNodeHandler {
 }
 
 impl SyncToMainNodeHandler {
-    pub fn new() -> Self {
+    pub fn new(logger: Arc<dyn Logger + Send + Sync + 'static>) -> Self {
         Self {
-            event_notifier: Arc::new(SyncToMainNodeQueues::new()),
+            event_notifier: Arc::new(SyncToMainNodeQueues::new(logger)),
         }
     }
 
-    pub async fn start(
-        &self,
-        app_states: Arc<impl ApplicationStates + Send + Sync + 'static>,
-        logger: Arc<impl Logger + Send + Sync + 'static>,
-    ) {
+    pub async fn start(&self, app_states: Arc<impl ApplicationStates + Send + Sync + 'static>) {
         let event_loop = SyncToMainNodeEventLoop::new(self.event_notifier.clone());
         self.event_notifier
             .event_loop
             .register_event_loop(Arc::new(event_loop))
             .await;
-        self.event_notifier
-            .event_loop
-            .start(app_states, logger)
-            .await
+        self.event_notifier.event_loop.start(app_states).await
     }
 
     pub fn tcp_events_pusher_new_connection_established(
@@ -70,6 +63,7 @@ impl SyncToMainNodeEventLoop {
 
 #[async_trait::async_trait]
 impl EventsLoopTick<SyncToMainNodeEvent> for SyncToMainNodeEventLoop {
+    async fn started(&self) {}
     async fn tick(&self, event: SyncToMainNodeEvent) {
         match event {
             SyncToMainNodeEvent::Connected(connection) => {
@@ -87,6 +81,7 @@ impl EventsLoopTick<SyncToMainNodeEvent> for SyncToMainNodeEventLoop {
             }
         }
     }
+    async fn finished(&self) {}
 }
 
 pub async fn to_main_node_pusher(
