@@ -1,4 +1,7 @@
-use my_tcp_sockets::socket_reader::{ReadingTcpContractFail, SocketReader, SocketReaderInMem};
+use my_tcp_sockets::{
+    socket_reader::{ReadingTcpContractFail, SocketReader, SocketReaderInMem},
+    TcpPayload,
+};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{tcp_packets::*, DeleteRowTcpContract};
@@ -72,26 +75,26 @@ pub enum MyNoSqlTcpContract {
 }
 
 impl MyNoSqlTcpContract {
-    pub fn compress_if_make_sence_and_serialize(&self) -> Vec<u8> {
+    pub fn compress_if_make_since(self) -> Self {
         if let Self::CompressedPayload(_) = self {
-            panic!("You can not get compresed payload from compressed payload");
+            panic!("You can not get compress payload from compressed payload");
         }
 
         let non_compressed = self.serialize();
 
-        let compressed = super::payload_comressor::compress(non_compressed.as_slice()).unwrap();
+        let compressed = super::payload_compressor::compress(non_compressed.as_slice()).unwrap();
 
-        if compressed.len() + 10 < non_compressed.len() {
-            Self::CompressedPayload(compressed).serialize()
+        if compressed.len() + 10 < non_compressed.as_slice().len() {
+            Self::CompressedPayload(compressed)
         } else {
-            non_compressed
+            self
         }
     }
 
     pub async fn decompress_if_compressed(self) -> Result<Self, ReadingTcpContractFail> {
         if let Self::CompressedPayload(payload) = self {
             let uncompressed_payload =
-                super::payload_comressor::decompress(payload.as_slice()).unwrap();
+                super::payload_compressor::decompress(payload.as_slice()).unwrap();
 
             let mut reader = SocketReaderInMem::new(uncompressed_payload);
 
@@ -110,25 +113,25 @@ impl MyNoSqlTcpContract {
             PING => Ok(Self::Ping {}),
             PONG => Ok(Self::Pong {}),
             GREETING => {
-                let name = crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                let name = crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::Greeting { name })
             }
             SUBSCRIBE => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::Subscribe { table_name })
             }
             INIT_TABLE => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 let data = socket_reader.read_byte_array().await?;
                 Ok(Self::InitTable { table_name, data })
             }
             INIT_PARTITION => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 let partition_key =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 let data = socket_reader.read_byte_array().await?;
                 Ok(Self::InitPartition {
                     table_name,
@@ -138,14 +141,14 @@ impl MyNoSqlTcpContract {
             }
             UPDATE_ROWS => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let data = socket_reader.read_byte_array().await?;
                 Ok(Self::UpdateRows { table_name, data })
             }
             DELETE_ROWS => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let rows_amount = socket_reader.read_i32().await?;
 
@@ -168,8 +171,7 @@ impl MyNoSqlTcpContract {
                     );
                 }
 
-                let message =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                let message = crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 panic!("TCP protocol error: {}", message);
             }
@@ -178,10 +180,10 @@ impl MyNoSqlTcpContract {
 
                 let mut compress = false;
                 let node_location =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let node_version =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 if packet_version > 0 {
                     compress = socket_reader.read_bool().await?;
@@ -197,21 +199,21 @@ impl MyNoSqlTcpContract {
                 // Version 0 = we read table_name only
                 socket_reader.read_byte().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::SubscribeAsNode(table_name))
             }
             TABLES_NOT_FOUND => {
                 // Version 0 = we read table_name only
                 socket_reader.read_byte().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::TableNotFound(table_name))
             }
             UNSUBSCRIBE => {
                 // Version 0 = we read table_name only
                 socket_reader.read_byte().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::Unsubscribe(table_name))
             }
             COMPRESSED_PAYLOAD => {
@@ -222,10 +224,10 @@ impl MyNoSqlTcpContract {
                 let _protocol_version = socket_reader.read_byte().await?;
                 let confirmation_id = socket_reader.read_i64().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let partitions =
-                    super::common_deserializers::read_list_of_pascal_strings(socket_reader).await?;
+                    super::common_deserializes::read_list_of_pascal_strings(socket_reader).await?;
 
                 Ok(Self::UpdatePartitionsLastReadTime {
                     confirmation_id,
@@ -237,13 +239,13 @@ impl MyNoSqlTcpContract {
                 let _protocol_version = socket_reader.read_byte().await?;
                 let confirmation_id = socket_reader.read_i64().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let partition_key =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let row_keys =
-                    super::common_deserializers::read_list_of_pascal_strings(socket_reader).await?;
+                    super::common_deserializes::read_list_of_pascal_strings(socket_reader).await?;
 
                 Ok(Self::UpdateRowsLastReadTime {
                     confirmation_id,
@@ -257,7 +259,7 @@ impl MyNoSqlTcpContract {
                 let _protocol_version = socket_reader.read_byte().await?;
                 let confirmation_id = socket_reader.read_i64().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let amount = socket_reader.read_i32().await? as usize;
 
@@ -265,9 +267,9 @@ impl MyNoSqlTcpContract {
 
                 for _ in 0..amount {
                     let partition_key =
-                        super::common_deserializers::read_pascal_string(socket_reader).await?;
+                        super::common_deserializes::read_pascal_string(socket_reader).await?;
                     let expiration_time =
-                        super::common_deserializers::read_date_time_opt(socket_reader).await?;
+                        super::common_deserializes::read_date_time_opt(socket_reader).await?;
 
                     partitions.push((partition_key, expiration_time));
                 }
@@ -283,16 +285,16 @@ impl MyNoSqlTcpContract {
                 let _protocol_version = socket_reader.read_byte().await?;
                 let confirmation_id = socket_reader.read_i64().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let partition_key =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let row_keys =
-                    super::common_deserializers::read_list_of_pascal_strings(socket_reader).await?;
+                    super::common_deserializes::read_list_of_pascal_strings(socket_reader).await?;
 
                 let expiration_time =
-                    super::common_deserializers::read_date_time_opt(socket_reader).await?;
+                    super::common_deserializes::read_date_time_opt(socket_reader).await?;
 
                 Ok(Self::UpdateRowsExpirationTime {
                     confirmation_id,
@@ -313,10 +315,10 @@ impl MyNoSqlTcpContract {
 
         return result;
     }
-    pub fn serialize(&self) -> Vec<u8> {
+    pub fn serialize(&self) -> TcpPayload {
         let mut buffer = Vec::new();
         self.serialize_into(&mut buffer);
-        buffer
+        buffer.into()
     }
 
     pub fn serialize_into(&self, buffer: &mut Vec<u8>) {

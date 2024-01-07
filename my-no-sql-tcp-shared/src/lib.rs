@@ -1,7 +1,7 @@
-pub mod common_deserializers;
+pub mod common_deserializes;
 pub mod common_serializers;
 mod delete_row_tcp_contract;
-pub mod payload_comressor;
+pub mod payload_compressor;
 mod tcp_contracts;
 pub mod tcp_packets;
 mod tcp_serializer;

@@ -10,8 +10,8 @@ impl DeleteRowTcpContract {
     pub async fn deserialize<TSocketReader: SocketReader>(
         socket_reader: &mut TSocketReader,
     ) -> Result<Self, ReadingTcpContractFail> {
-        let partition_key = crate::common_deserializers::read_pascal_string(socket_reader).await?;
-        let row_key = crate::common_deserializers::read_pascal_string(socket_reader).await?;
+        let partition_key = crate::common_deserializes::read_pascal_string(socket_reader).await?;
+        let row_key = crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
         let result = Self {
             partition_key,
