@@ -1,4 +1,4 @@
-const MAX_SIZE: usize = 2048;
+const MAX_SIZE: usize = 512;
 pub struct SmallContentCompiler {
     content: [u8; MAX_SIZE],
     len: usize,
@@ -7,7 +7,7 @@ pub struct SmallContentCompiler {
 impl SmallContentCompiler {
     pub fn new() -> Self {
         Self {
-            content: [0; 2048],
+            content: [0; 512],
             len: 0,
         }
     }
