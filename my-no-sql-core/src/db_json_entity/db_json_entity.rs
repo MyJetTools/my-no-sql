@@ -115,7 +115,7 @@ impl DbJsonEntity {
         let mut time_stamp = None;
         let mut expires_value = None;
 
-        let mut raw = DbRowContentCompiler::new();
+        let mut raw = DbRowContentCompiler::new(src.len());
 
         for line in JsonFirstLineReader::new(&src) {
             let line = line?;

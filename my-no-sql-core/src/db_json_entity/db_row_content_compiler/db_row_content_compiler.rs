@@ -10,9 +10,9 @@ pub struct DbRowContentCompiler {
 }
 
 impl DbRowContentCompiler {
-    pub fn new() -> Self {
+    pub fn new(expected_size: usize) -> Self {
         Self {
-            content: ContentCompiler::new(),
+            content: ContentCompiler::new(expected_size),
             first_line: false,
         }
     }

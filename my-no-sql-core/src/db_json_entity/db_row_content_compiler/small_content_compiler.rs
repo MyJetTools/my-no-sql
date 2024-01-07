@@ -1,19 +1,19 @@
-const MAX_SIZE: usize = 512;
+pub const SMALL_COMPILER_MAX_SIZE: usize = 512;
 pub struct SmallContentCompiler {
-    content: [u8; MAX_SIZE],
+    content: [u8; SMALL_COMPILER_MAX_SIZE],
     len: usize,
 }
 
 impl SmallContentCompiler {
     pub fn new() -> Self {
         Self {
-            content: [0; 512],
+            content: [0; SMALL_COMPILER_MAX_SIZE],
             len: 0,
         }
     }
 
     pub fn push(&mut self, value: u8) -> bool {
-        if self.len == MAX_SIZE {
+        if self.len == SMALL_COMPILER_MAX_SIZE {
             return false;
         }
         self.content[self.len] = value;
@@ -22,7 +22,7 @@ impl SmallContentCompiler {
     }
 
     pub fn extent_from_slice(&mut self, src: &[u8]) -> bool {
-        if self.len + src.len() > MAX_SIZE {
+        if self.len + src.len() > SMALL_COMPILER_MAX_SIZE {
             return false;
         }
         self.content[self.len..self.len + src.len()].copy_from_slice(src);

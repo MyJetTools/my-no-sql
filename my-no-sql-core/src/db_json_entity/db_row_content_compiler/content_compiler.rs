@@ -1,4 +1,4 @@
-use super::SmallContentCompiler;
+use super::{SmallContentCompiler, SMALL_COMPILER_MAX_SIZE};
 
 pub enum ContentCompiler {
     Small(SmallContentCompiler),
@@ -6,8 +6,12 @@ pub enum ContentCompiler {
 }
 
 impl ContentCompiler {
-    pub fn new() -> Self {
-        Self::Small(SmallContentCompiler::new())
+    pub fn new(current_size: usize) -> Self {
+        if current_size <= SMALL_COMPILER_MAX_SIZE {
+            return Self::Small(SmallContentCompiler::new());
+        }
+
+        Self::Big(Vec::new())
     }
 
     fn unwrap_as_big(&mut self) -> &mut Vec<u8> {
