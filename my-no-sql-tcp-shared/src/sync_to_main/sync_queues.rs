@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rust_extensions::{date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, Logger};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use super::{sync_to_main_node_event::SyncToMainNodeEvent, *};
 
@@ -99,14 +99,14 @@ impl SyncQueuesInner {
 
 pub struct SyncToMainNodeQueues {
     inner: Mutex<SyncQueuesInner>,
-    pub event_loop: EventsLoop<SyncToMainNodeEvent>,
+    pub event_loop: RwLock<EventsLoop<SyncToMainNodeEvent>>,
 }
 
 impl SyncToMainNodeQueues {
     pub fn new(logger: Arc<dyn Logger + Send + Sync + 'static>) -> Self {
         Self {
             inner: Mutex::new(SyncQueuesInner::new()),
-            event_loop: EventsLoop::new("SyncToMainNodeQueues".to_string(), logger),
+            event_loop: RwLock::new(EventsLoop::new("SyncToMainNodeQueues".to_string(), logger)),
         }
     }
 
@@ -128,7 +128,8 @@ impl SyncToMainNodeQueues {
                 .update_partitions_last_read_time_queue
                 .add_partition(table_name, partition_key);
 
-            self.event_loop.send(SyncToMainNodeEvent::PingToDeliver);
+            let event_loop = self.event_loop.read().await;
+            event_loop.send(SyncToMainNodeEvent::PingToDeliver);
         }
 
         if let Some(partition_expiration) = data.partition_expiration_moment {
@@ -137,8 +138,8 @@ impl SyncToMainNodeQueues {
                 partition_key,
                 partition_expiration,
             );
-
-            self.event_loop.send(SyncToMainNodeEvent::PingToDeliver);
+            let event_loop = self.event_loop.read().await;
+            event_loop.send(SyncToMainNodeEvent::PingToDeliver);
         }
 
         if data.row_last_read_moment {
@@ -146,7 +147,9 @@ impl SyncToMainNodeQueues {
                 inner
                     .update_rows_last_read_time_queue
                     .add(table_name, partition_key, row_keys());
-                self.event_loop.send(SyncToMainNodeEvent::PingToDeliver);
+
+                let event_loop = self.event_loop.read().await;
+                event_loop.send(SyncToMainNodeEvent::PingToDeliver);
             }
         }
 
@@ -158,7 +161,8 @@ impl SyncToMainNodeQueues {
                 row_expiration,
             );
 
-            self.event_loop.send(SyncToMainNodeEvent::PingToDeliver);
+            let event_loop = self.event_loop.read().await;
+            event_loop.send(SyncToMainNodeEvent::PingToDeliver);
         }
     }
 
@@ -174,7 +178,8 @@ impl SyncToMainNodeQueues {
             .update_partition_expiration_time_update
             .add(table_name, partition_key, date_time);
 
-        self.event_loop.send(SyncToMainNodeEvent::PingToDeliver);
+        let event_loop = self.event_loop.read().await;
+        event_loop.send(SyncToMainNodeEvent::PingToDeliver);
     }
 
     pub async fn update_rows_expiration_time<'s, TRowKeys: Iterator<Item = &'s String>>(
@@ -192,7 +197,8 @@ impl SyncToMainNodeQueues {
             date_time,
         );
 
-        self.event_loop.send(SyncToMainNodeEvent::PingToDeliver);
+        let event_loop = self.event_loop.read().await;
+        event_loop.send(SyncToMainNodeEvent::PingToDeliver);
     }
 
     pub async fn update_rows_last_read_time<'s, TRowKeys: Iterator<Item = &'s String>>(
@@ -208,7 +214,8 @@ impl SyncToMainNodeQueues {
             row_keys.map(|itm| itm.as_str()),
         );
 
-        self.event_loop.send(SyncToMainNodeEvent::PingToDeliver);
+        let event_loop = self.event_loop.read().await;
+        event_loop.send(SyncToMainNodeEvent::PingToDeliver);
     }
 
     pub async fn update_partitions_last_read_time<'s, TPartitions: Iterator<Item = &'s String>>(
@@ -221,7 +228,8 @@ impl SyncToMainNodeQueues {
             .update_partitions_last_read_time_queue
             .add(table_name, partition_keys);
 
-        self.event_loop.send(SyncToMainNodeEvent::PingToDeliver);
+        let event_loop = self.event_loop.read().await;
+        event_loop.send(SyncToMainNodeEvent::PingToDeliver);
     }
 
     pub async fn get_next_event_to_deliver(
