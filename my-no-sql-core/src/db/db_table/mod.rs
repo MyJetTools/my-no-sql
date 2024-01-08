@@ -16,3 +16,5 @@ pub use data_to_gc::*;
 
 mod db_partitions_container;
 pub use db_partitions_container::*;
+mod avg_size;
+pub use avg_size::*;

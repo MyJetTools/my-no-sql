@@ -8,13 +8,14 @@ use std::{
 
 use crate::db::{DbPartition, DbRow};
 
-use super::DbPartitionsContainer;
 #[cfg(feature = "master-node")]
 use super::DbTableAttributes;
+use super::{AvgSize, DbPartitionsContainer};
 
 pub struct DbTable {
     pub name: String,
     pub partitions: DbPartitionsContainer,
+    pub avg_size: AvgSize,
     #[cfg(feature = "master-node")]
     pub last_write_moment: DateTimeAsMicroseconds,
     #[cfg(feature = "master-node")]
@@ -27,6 +28,7 @@ impl DbTable {
         Self {
             name: name.into(),
             partitions: DbPartitionsContainer::new(),
+            avg_size: AvgSize::new(),
         }
     }
 
@@ -112,6 +114,8 @@ impl DbTable {
         db_row: &Arc<DbRow>,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<Arc<DbRow>> {
+        self.avg_size.add(db_row);
+
         if !self.partitions.has_partition(db_row.get_partition_key()) {
             let mut db_partition = DbPartition::new(db_row.get_partition_key().to_string());
             db_partition.insert_or_replace_row(db_row.clone());
@@ -144,6 +148,8 @@ impl DbTable {
         db_row: &Arc<DbRow>,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> bool {
+        self.avg_size.add(db_row);
+
         if !self.partitions.has_partition(db_row.get_partition_key()) {
             self.partitions
                 .insert(DbPartition::new(db_row.get_partition_key().to_string()));
@@ -170,6 +176,10 @@ impl DbTable {
         db_rows: &[Arc<DbRow>],
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<Vec<Arc<DbRow>>> {
+        for db_row in db_rows {
+            self.avg_size.add(db_row);
+        }
+
         if !self.partitions.has_partition(partition_key) {
             self.partitions
                 .insert(DbPartition::new(partition_key.to_string()));
