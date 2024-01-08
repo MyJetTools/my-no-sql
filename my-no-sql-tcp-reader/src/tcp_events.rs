@@ -71,11 +71,9 @@ impl TcpEvents {
             MyNoSqlTcpContract::Unsubscribe(_) => {}
             MyNoSqlTcpContract::TableNotFound(_) => {}
             MyNoSqlTcpContract::CompressedPayload(_) => {}
-            MyNoSqlTcpContract::Confirmation { confirmation_id } => {
-                self.sync_handler
-                    .tcp_events_pusher_got_confirmation(confirmation_id)
-                    .await
-            }
+            MyNoSqlTcpContract::Confirmation { confirmation_id } => self
+                .sync_handler
+                .tcp_events_pusher_got_confirmation(confirmation_id),
             MyNoSqlTcpContract::UpdatePartitionsLastReadTime {
                 confirmation_id: _,
                 table_name: _,
@@ -126,13 +124,11 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for Tcp
                 }
 
                 self.sync_handler
-                    .tcp_events_pusher_new_connection_established(connection)
-                    .await;
+                    .tcp_events_pusher_new_connection_established(connection);
             }
             ConnectionEvent::Disconnected(connection) => {
                 self.sync_handler
-                    .tcp_events_pusher_connection_disconnected(connection)
-                    .await;
+                    .tcp_events_pusher_connection_disconnected(connection);
             }
             ConnectionEvent::Payload {
                 connection,

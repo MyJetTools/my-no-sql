@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use rust_extensions::events_loop::EventsLoop;
-
 use super::{
-    DataReaderTcpConnection, SyncToMainNodeEvent, UpdatePartitionExpirationEvent,
-    UpdatePartitionsExpirationTimeQueue, UpdatePartitionsLastReadTimeEvent,
-    UpdatePartitionsLastReadTimeQueue, UpdateRowsExpirationTimeEvent,
-    UpdateRowsExpirationTimeQueue, UpdateRowsLastReadTimeEvent, UpdateRowsLastReadTimeQueue,
+    DataReaderTcpConnection, UpdatePartitionExpirationEvent, UpdatePartitionsExpirationTimeQueue,
+    UpdatePartitionsLastReadTimeEvent, UpdatePartitionsLastReadTimeQueue,
+    UpdateRowsExpirationTimeEvent, UpdateRowsExpirationTimeQueue, UpdateRowsLastReadTimeEvent,
+    UpdateRowsLastReadTimeQueue,
 };
 
 #[derive(Debug, Clone)]
@@ -61,7 +59,6 @@ pub struct SyncToMainNodeQueue {
     pub update_rows_last_read_time_queue: UpdateRowsLastReadTimeQueue,
     pub on_delivery: Option<DeliverToMainNodeEvent>,
     pub connection: Option<Arc<DataReaderTcpConnection>>,
-    pub events_loop: Option<EventsLoop<SyncToMainNodeEvent>>,
 }
 
 impl SyncToMainNodeQueue {
@@ -74,7 +71,6 @@ impl SyncToMainNodeQueue {
             update_partitions_last_read_time_queue: UpdatePartitionsLastReadTimeQueue::new(),
             on_delivery: None,
             connection: None,
-            events_loop: None,
         }
     }
 

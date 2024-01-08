@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use rust_extensions::{events_loop::EventsLoop, ApplicationStates, Logger};
+use tokio::sync::Mutex;
 
 use super::{
     sync_to_main_node_handler_inner::SyncToMainNodeHandlerInner, DataReaderTcpConnection,
@@ -9,55 +10,52 @@ use super::{
 
 pub struct SyncToMainNodeHandler {
     pub inner: Arc<SyncToMainNodeHandlerInner>,
+    events_loop: Mutex<EventsLoop<SyncToMainNodeEvent>>,
 }
 
 impl SyncToMainNodeHandler {
-    pub fn new() -> Self {
-        let inner = Arc::new(SyncToMainNodeHandlerInner::new());
-
-        Self { inner }
-    }
-
-    pub async fn start(
-        &self,
-        app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-        logger: Arc<dyn Logger + Send + Sync + 'static>,
-    ) {
+    pub fn new(logger: Arc<dyn Logger + Send + Sync + 'static>) -> Self {
         let mut events_loop = EventsLoop::new("SyncToMainNodeQueues".to_string(), logger);
 
-        events_loop.register_event_loop(self.inner.clone());
+        let events_publisher = events_loop.get_publisher();
 
-        self.inner.set_event_loop(events_loop).await;
-        self.inner.start(app_states).await
+        let inner = Arc::new(SyncToMainNodeHandlerInner::new(events_publisher));
+
+        events_loop.register_event_loop(inner.clone());
+
+        Self {
+            inner,
+            events_loop: Mutex::new(events_loop),
+        }
     }
 
-    pub async fn tcp_events_pusher_new_connection_established(
+    pub async fn start(&self, app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>) {
+        let mut events_loop = self.events_loop.lock().await;
+        events_loop.start(app_states);
+    }
+
+    pub fn tcp_events_pusher_new_connection_established(
         &self,
         connection: Arc<DataReaderTcpConnection>,
     ) {
-        let queues = self.inner.queues.lock().await;
-
-        if let Some(events_loop) = queues.events_loop.as_ref() {
-            events_loop.send(SyncToMainNodeEvent::Connected(connection));
-        }
+        self.inner
+            .events_publisher
+            .send(SyncToMainNodeEvent::Connected(connection));
     }
 
-    pub async fn tcp_events_pusher_connection_disconnected(
+    pub fn tcp_events_pusher_connection_disconnected(
         &self,
         connection: Arc<DataReaderTcpConnection>,
     ) {
-        let queues = self.inner.queues.lock().await;
-        if let Some(events_loop) = queues.events_loop.as_ref() {
-            events_loop.send(SyncToMainNodeEvent::Disconnected(connection));
-        }
+        self.inner
+            .events_publisher
+            .send(SyncToMainNodeEvent::Disconnected(connection));
     }
 
-    pub async fn tcp_events_pusher_got_confirmation(&self, confirmation_id: i64) {
-        let queues = self.inner.queues.lock().await;
-
-        if let Some(events_loop) = queues.events_loop.as_ref() {
-            events_loop.send(SyncToMainNodeEvent::Delivered(confirmation_id));
-        }
+    pub fn tcp_events_pusher_got_confirmation(&self, confirmation_id: i64) {
+        self.inner
+            .events_publisher
+            .send(SyncToMainNodeEvent::Delivered(confirmation_id));
     }
 
     pub async fn update<'s, TRowKeys: Iterator<Item = &'s str>>(
@@ -78,9 +76,9 @@ impl SyncToMainNodeHandler {
                 .update_partitions_last_read_time_queue
                 .add_partition(table_name, partition_key);
 
-            if let Some(events_loop) = inner.events_loop.as_ref() {
-                events_loop.send(SyncToMainNodeEvent::PingToDeliver);
-            }
+            self.inner
+                .events_publisher
+                .send(SyncToMainNodeEvent::PingToDeliver);
         }
 
         if let Some(partition_expiration) = data.partition_expiration_moment {
@@ -90,9 +88,9 @@ impl SyncToMainNodeHandler {
                 partition_expiration,
             );
 
-            if let Some(events_loop) = inner.events_loop.as_ref() {
-                events_loop.send(SyncToMainNodeEvent::PingToDeliver);
-            }
+            self.inner
+                .events_publisher
+                .send(SyncToMainNodeEvent::PingToDeliver);
         }
 
         if data.row_last_read_moment {
@@ -100,9 +98,10 @@ impl SyncToMainNodeHandler {
                 inner
                     .update_rows_last_read_time_queue
                     .add(table_name, partition_key, row_keys());
-                if let Some(events_loop) = inner.events_loop.as_ref() {
-                    events_loop.send(SyncToMainNodeEvent::PingToDeliver);
-                }
+
+                self.inner
+                    .events_publisher
+                    .send(SyncToMainNodeEvent::PingToDeliver);
             }
         }
 
@@ -113,9 +112,10 @@ impl SyncToMainNodeHandler {
                 row_keys(),
                 row_expiration,
             );
-            if let Some(events_loop) = inner.events_loop.as_ref() {
-                events_loop.send(SyncToMainNodeEvent::PingToDeliver);
-            }
+
+            self.inner
+                .events_publisher
+                .send(SyncToMainNodeEvent::PingToDeliver);
         }
     }
 }

@@ -1,9 +1,4 @@
-use std::sync::Arc;
-
-use rust_extensions::{
-    events_loop::{EventsLoop, EventsLoopTick},
-    ApplicationStates,
-};
+use rust_extensions::events_loop::{EventsLoopPublisher, EventsLoopTick};
 use tokio::sync::Mutex;
 
 use crate::sync_to_main::DeliverToMainNodeEvent;
@@ -12,24 +7,14 @@ use super::{SyncToMainNodeEvent, SyncToMainNodeQueue};
 
 pub struct SyncToMainNodeHandlerInner {
     pub queues: Mutex<SyncToMainNodeQueue>,
+    pub events_publisher: EventsLoopPublisher<SyncToMainNodeEvent>,
 }
 
 impl SyncToMainNodeHandlerInner {
-    pub fn new() -> Self {
+    pub fn new(events_publisher: EventsLoopPublisher<SyncToMainNodeEvent>) -> Self {
         Self {
             queues: Mutex::new(SyncToMainNodeQueue::new()),
-        }
-    }
-
-    pub async fn set_event_loop(&self, events_loop: EventsLoop<SyncToMainNodeEvent>) {
-        let mut queues = self.queues.lock().await;
-        queues.events_loop = Some(events_loop);
-    }
-
-    pub async fn start(&self, app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>) {
-        let mut queues = self.queues.lock().await;
-        if let Some(event_loop) = queues.events_loop.as_mut() {
-            event_loop.start(app_states);
+            events_publisher,
         }
     }
 }
