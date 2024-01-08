@@ -43,7 +43,7 @@ impl MyNoSqlTcpConnection {
             connect_timeout: Duration::from_secs(3),
             tcp_events: Arc::new(TcpEvents::new(
                 app_name.to_string(),
-                Arc::new(SyncToMainNodeHandler::new(my_logger::LOGGER.clone())),
+                Arc::new(SyncToMainNodeHandler::new()),
             )),
             app_states: Arc::new(AppStates::create_un_initialized()),
         }
@@ -74,7 +74,7 @@ impl MyNoSqlTcpConnection {
 
         self.tcp_events
             .sync_handler
-            .start(self.app_states.clone())
+            .start(self.app_states.clone(), my_logger::LOGGER.clone())
             .await;
     }
 }

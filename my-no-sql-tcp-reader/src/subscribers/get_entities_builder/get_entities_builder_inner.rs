@@ -47,7 +47,6 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
 
         self.inner
             .get_sync_handler()
-            .event_notifier
             .update(
                 TMyNoSqlEntity::TABLE_NAME,
                 &self.partition_key,
@@ -70,7 +69,6 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
 
         self.inner
             .get_sync_handler()
-            .event_notifier
             .update(
                 TMyNoSqlEntity::TABLE_NAME,
                 &self.partition_key,
@@ -90,7 +88,6 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
 
         self.inner
             .get_sync_handler()
-            .event_notifier
             .update(
                 TMyNoSqlEntity::TABLE_NAME,
                 &self.partition_key,
@@ -113,7 +110,6 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
 
         self.inner
             .get_sync_handler()
-            .event_notifier
             .update(
                 TMyNoSqlEntity::TABLE_NAME,
                 &self.partition_key,
