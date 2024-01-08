@@ -19,35 +19,31 @@ impl SyncToMainNodeHandler {
 
     pub async fn start(&self, app_states: Arc<impl ApplicationStates + Send + Sync + 'static>) {
         let event_loop = SyncToMainNodeEventLoop::new(self.event_notifier.clone());
-        self.event_notifier
-            .event_loop
-            .register_event_loop(Arc::new(event_loop))
-            .await;
-        self.event_notifier.event_loop.start(app_states).await
+
+        let mut event_loop_write = self.event_notifier.event_loop.write().await;
+        event_loop_write.register_event_loop(Arc::new(event_loop));
+        event_loop_write.start(app_states)
     }
 
-    pub fn tcp_events_pusher_new_connection_established(
+    pub async fn tcp_events_pusher_new_connection_established(
         &self,
         connection: Arc<DataReaderTcpConnection>,
     ) {
-        self.event_notifier
-            .event_loop
-            .send(SyncToMainNodeEvent::Connected(connection));
+        let event_loop_write = self.event_notifier.event_loop.read().await;
+        event_loop_write.send(SyncToMainNodeEvent::Connected(connection));
     }
 
-    pub fn tcp_events_pusher_connection_disconnected(
+    pub async fn tcp_events_pusher_connection_disconnected(
         &self,
         connection: Arc<DataReaderTcpConnection>,
     ) {
-        self.event_notifier
-            .event_loop
-            .send(SyncToMainNodeEvent::Disconnected(connection));
+        let event_loop_write = self.event_notifier.event_loop.read().await;
+        event_loop_write.send(SyncToMainNodeEvent::Disconnected(connection));
     }
 
-    pub fn tcp_events_pusher_got_confirmation(&self, confirmation_id: i64) {
-        self.event_notifier
-            .event_loop
-            .send(SyncToMainNodeEvent::Delivered(confirmation_id));
+    pub async fn tcp_events_pusher_got_confirmation(&self, confirmation_id: i64) {
+        let event_loop_write = self.event_notifier.event_loop.read().await;
+        event_loop_write.send(SyncToMainNodeEvent::Delivered(confirmation_id));
     }
 }
 
