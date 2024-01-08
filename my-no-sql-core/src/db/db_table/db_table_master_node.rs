@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use super::{DataToGc, DbPartitionsContainer, DbTable, DbTableAttributes};
+use super::{AvgSize, DataToGc, DbPartitionsContainer, DbTable, DbTableAttributes};
 
 impl DbTable {
     pub fn new(name: String, attributes: DbTableAttributes) -> Self {
@@ -11,6 +11,7 @@ impl DbTable {
             partitions: DbPartitionsContainer::new(),
             last_write_moment: DateTimeAsMicroseconds::now(),
             attributes,
+            avg_size: AvgSize::new(),
         }
     }
 
