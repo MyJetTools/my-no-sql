@@ -1,6 +1,6 @@
 use my_tcp_sockets::{
     socket_reader::{ReadingTcpContractFail, SocketReader},
-    TcpPayload, TcpSocketSerializer,
+    TcpSocketSerializer, TcpWriteBuffer,
 };
 
 use crate::MyNoSqlTcpContract;
@@ -17,8 +17,8 @@ impl MyNoSqlReaderTcpSerializer {
 impl TcpSocketSerializer<MyNoSqlTcpContract> for MyNoSqlReaderTcpSerializer {
     const PING_PACKET_IS_SINGLETON: bool = true;
 
-    fn serialize<'s>(&self, contract: &'s MyNoSqlTcpContract) -> TcpPayload<'s> {
-        contract.serialize()
+    fn serialize(&self, out: &mut impl TcpWriteBuffer, contract: &MyNoSqlTcpContract) {
+        contract.serialize(out)
     }
 
     fn get_ping(&self) -> MyNoSqlTcpContract {
