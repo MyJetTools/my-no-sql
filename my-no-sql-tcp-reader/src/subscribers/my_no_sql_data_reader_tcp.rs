@@ -134,6 +134,47 @@ where
 
         result
     }
+
+    pub async fn get_enum_case_models_by_partition_key<
+        's,
+        TResult: MyNoSqlEntity
+            + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
+            + From<Arc<TMyNoSqlEntity>>
+            + Sync
+            + Send
+            + 'static,
+    >(
+        &self,
+    ) -> Option<Vec<TResult>> {
+        let entities = self
+            .get_by_partition_key_as_vec(TResult::PARTITION_KEY)
+            .await?;
+
+        let mut result = Vec::with_capacity(entities.len());
+
+        for entity in entities {
+            result.push(TResult::from(entity));
+        }
+
+        Some(result)
+    }
+
+    pub async fn get_enum_case_model<
+        TResult: MyNoSqlEntity
+            + From<Arc<TMyNoSqlEntity>>
+            + my_no_sql_abstractions::GetMyNoSqlEntity
+            + Sync
+            + Send
+            + 'static,
+    >(
+        &self,
+    ) -> Option<TResult> {
+        let entity = self
+            .get_entity(TResult::PARTITION_KEY, TResult::ROW_KEY)
+            .await?;
+
+        Some(TResult::from(entity))
+    }
 }
 
 #[async_trait]
