@@ -106,7 +106,7 @@ impl MyNoSqlTcpContract {
         }
     }
 
-    pub async fn deserialize<TSocketReader: SocketReader>(
+    pub async fn deserialize<TSocketReader: SocketReader + Send + Sync + 'static>(
         socket_reader: &mut TSocketReader,
     ) -> Result<Self, ReadingTcpContractFail> {
         let packet_no = socket_reader.read_byte().await?;
