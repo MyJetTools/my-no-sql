@@ -1,15 +1,21 @@
 use my_tcp_sockets::{
     socket_reader::{ReadingTcpContractFail, SocketReader},
-    SerializationMetadata, TcpSocketSerializer, TcpWriteBuffer,
+    TcpSerializationMetadata, TcpSocketSerializer, TcpWriteBuffer,
 };
 
 use crate::MyNoSqlTcpContract;
 
-pub struct MyNoSqlReaderTcpSerializer {}
+pub struct MyNoSqlReaderTcpSerializer;
 
 impl MyNoSqlReaderTcpSerializer {
     pub fn new() -> Self {
-        Self {}
+        Self
+    }
+}
+
+impl Default for MyNoSqlReaderTcpSerializer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -30,12 +36,8 @@ impl TcpSocketSerializer<MyNoSqlTcpContract, ()> for MyNoSqlReaderTcpSerializer 
     ) -> Result<MyNoSqlTcpContract, ReadingTcpContractFail> {
         MyNoSqlTcpContract::deserialize(socket_reader).await
     }
-
-    fn create_serializer() -> Self {
-        Self::new()
-    }
 }
 
-impl SerializationMetadata<MyNoSqlTcpContract> for () {
+impl TcpSerializationMetadata<MyNoSqlTcpContract> for () {
     fn apply_tcp_contract(&mut self, _: &MyNoSqlTcpContract) {}
 }
