@@ -71,14 +71,11 @@ pub async fn to_main_node_pusher(
             }
 
             connection
-                .send(
-                    &MyNoSqlTcpContract::UpdatePartitionsExpirationTime {
-                        confirmation_id,
-                        table_name: event.table_name,
-                        partitions,
-                    },
-                    &(),
-                )
+                .send(&MyNoSqlTcpContract::UpdatePartitionsExpirationTime {
+                    confirmation_id,
+                    table_name: event.table_name,
+                    partitions,
+                })
                 .await;
         }
         DeliverToMainNodeEvent::UpdatePartitionsLastReadTime {
@@ -92,14 +89,11 @@ pub async fn to_main_node_pusher(
             }
 
             connection
-                .send(
-                    &MyNoSqlTcpContract::UpdatePartitionsLastReadTime {
-                        confirmation_id,
-                        table_name: event.table_name,
-                        partitions,
-                    },
-                    &(),
-                )
+                .send(&MyNoSqlTcpContract::UpdatePartitionsLastReadTime {
+                    confirmation_id,
+                    table_name: event.table_name,
+                    partitions,
+                })
                 .await;
         }
         DeliverToMainNodeEvent::UpdateRowsExpirationTime {
@@ -113,16 +107,13 @@ pub async fn to_main_node_pusher(
             }
 
             connection
-                .send(
-                    &MyNoSqlTcpContract::UpdateRowsExpirationTime {
-                        confirmation_id,
-                        table_name: event.table_name,
-                        partition_key: event.partition_key,
-                        row_keys,
-                        expiration_time: event.expiration_time,
-                    },
-                    &(),
-                )
+                .send(&MyNoSqlTcpContract::UpdateRowsExpirationTime {
+                    confirmation_id,
+                    table_name: event.table_name,
+                    partition_key: event.partition_key,
+                    row_keys,
+                    expiration_time: event.expiration_time,
+                })
                 .await;
         }
         DeliverToMainNodeEvent::UpdateRowsLastReadTime {
@@ -136,15 +127,12 @@ pub async fn to_main_node_pusher(
             }
 
             connection
-                .send(
-                    &MyNoSqlTcpContract::UpdateRowsLastReadTime {
-                        confirmation_id,
-                        table_name: event.table_name,
-                        partition_key: event.partition_key,
-                        row_keys,
-                    },
-                    &(),
-                )
+                .send(&MyNoSqlTcpContract::UpdateRowsLastReadTime {
+                    confirmation_id,
+                    table_name: event.table_name,
+                    partition_key: event.partition_key,
+                    row_keys,
+                })
                 .await;
         }
     }
