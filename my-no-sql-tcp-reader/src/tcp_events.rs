@@ -7,7 +7,7 @@ use my_tcp_sockets::{tcp_connection::TcpSocketConnection, ConnectionEvent, Socke
 
 use crate::subscribers::Subscribers;
 
-pub type TcpConnection = TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>;
+pub type TcpConnection = TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>;
 pub struct TcpEvents {
     app_name: String,
     pub subscribers: Subscribers,
@@ -102,10 +102,10 @@ impl TcpEvents {
 }
 
 #[async_trait::async_trait]
-impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for TcpEvents {
+impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for TcpEvents {
     async fn handle(
         &self,
-        connection_event: ConnectionEvent<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>,
+        connection_event: ConnectionEvent<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>,
     ) {
         match connection_event {
             ConnectionEvent::Connected(connection) => {
@@ -113,14 +113,14 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for Tcp
                     name: self.app_name.to_string(),
                 };
 
-                connection.send(&contract).await;
+                connection.send(&contract, &()).await;
 
                 for table in self.subscribers.get_tables_to_subscribe().await {
                     let contract = MyNoSqlTcpContract::Subscribe {
                         table_name: table.to_string(),
                     };
 
-                    connection.send(&contract).await;
+                    connection.send(&contract, &()).await;
                 }
 
                 self.sync_handler

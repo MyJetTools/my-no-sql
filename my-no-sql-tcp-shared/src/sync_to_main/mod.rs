@@ -21,4 +21,5 @@ pub use sync_to_main_node_queue::*;
 type DataReaderTcpConnection = my_tcp_sockets::tcp_connection::TcpSocketConnection<
     crate::MyNoSqlTcpContract,
     crate::MyNoSqlReaderTcpSerializer,
+    (),
 >;

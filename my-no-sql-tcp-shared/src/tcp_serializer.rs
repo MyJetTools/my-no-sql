@@ -1,6 +1,6 @@
 use my_tcp_sockets::{
     socket_reader::{ReadingTcpContractFail, SocketReader},
-    TcpSocketSerializer, TcpWriteBuffer,
+    SerializationMetadata, TcpSocketSerializer, TcpWriteBuffer,
 };
 
 use crate::MyNoSqlTcpContract;
@@ -14,10 +14,8 @@ impl MyNoSqlReaderTcpSerializer {
 }
 
 #[async_trait::async_trait]
-impl TcpSocketSerializer<MyNoSqlTcpContract> for MyNoSqlReaderTcpSerializer {
-    const PING_PACKET_IS_SINGLETON: bool = true;
-
-    fn serialize(&self, out: &mut impl TcpWriteBuffer, contract: &MyNoSqlTcpContract) {
+impl TcpSocketSerializer<MyNoSqlTcpContract, ()> for MyNoSqlReaderTcpSerializer {
+    fn serialize(&self, out: &mut impl TcpWriteBuffer, contract: &MyNoSqlTcpContract, _: &()) {
         contract.serialize(out)
     }
 
@@ -28,7 +26,16 @@ impl TcpSocketSerializer<MyNoSqlTcpContract> for MyNoSqlReaderTcpSerializer {
     async fn deserialize<TSocketReader: Send + Sync + 'static + SocketReader>(
         &mut self,
         socket_reader: &mut TSocketReader,
+        _: &(),
     ) -> Result<MyNoSqlTcpContract, ReadingTcpContractFail> {
         MyNoSqlTcpContract::deserialize(socket_reader).await
     }
+
+    fn create_serializer() -> Self {
+        Self::new()
+    }
+}
+
+impl SerializationMetadata<MyNoSqlTcpContract> for () {
+    fn apply_tcp_contract(&mut self, _: &MyNoSqlTcpContract) {}
 }
