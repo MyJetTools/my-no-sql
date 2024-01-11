@@ -1,6 +1,5 @@
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-use rust_extensions::lazy::LazyVec;
 use std::{
     collections::{btree_map::Values, BTreeMap},
     sync::Arc,
@@ -33,7 +32,7 @@ impl DbRowsContainer {
         self.rows_with_expiration_index.len()
     }
     #[cfg(feature = "master-node")]
-    pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<Arc<DbRow>>> {
+    pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Vec<Arc<DbRow>> {
         self.rows_with_expiration_index.get_items_to_expire(now)
     }
 
@@ -110,12 +109,12 @@ impl DbRowsContainer {
         &self,
         row_key: &String,
         limit: Option<usize>,
-    ) -> Option<Vec<&Arc<DbRow>>> {
-        let mut result = LazyVec::new();
+    ) -> Vec<&Arc<DbRow>> {
+        let mut result = Vec::new();
 
         for (db_row_key, db_row) in self.data.range(..row_key.to_string()) {
             if db_row_key <= row_key {
-                result.add(db_row);
+                result.push(db_row);
 
                 if let Some(limit) = limit {
                     if result.len() >= limit {
@@ -125,7 +124,7 @@ impl DbRowsContainer {
             }
         }
 
-        result.get_result()
+        result
     }
 
     #[cfg(feature = "master-node")]
@@ -355,7 +354,7 @@ mod tests {
 
         let rows_to_expire = db_rows.rows_with_expiration_index.get_items_to_expire(now);
 
-        assert_eq!(true, rows_to_expire.is_none());
+        assert_eq!(0, rows_to_expire.len());
     }
 
     #[test]
@@ -377,7 +376,7 @@ mod tests {
 
         let rows_to_expire = db_rows.rows_with_expiration_index.get_items_to_expire(now);
 
-        assert_eq!(true, rows_to_expire.is_some());
+        assert_eq!(true, rows_to_expire.len() > 0);
     }
 
     #[test]

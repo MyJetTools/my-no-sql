@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use rust_extensions::auto_shrink::VecAutoShrink;
 
@@ -63,34 +63,34 @@ impl<T: Clone + ExpirationItem> ExpirationIndex<T> {
         self.amount -= 1;
     }
 
-    pub fn get_items_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<T>> {
-        let mut result = LazyVec::new();
+    pub fn get_items_to_expire(&self, now: DateTimeAsMicroseconds) -> Vec<T> {
+        let mut result = Vec::new();
         for (expiration_time, items) in &self.index {
             if *expiration_time > now.unix_microseconds {
                 break;
             }
 
             for itm in items.iter() {
-                result.add(itm.clone());
+                result.push(itm.clone());
             }
         }
 
-        result.get_result()
+        result
     }
 
-    pub fn get_items_to_expire_cloned(&self, now: DateTimeAsMicroseconds) -> Option<Vec<T>> {
-        let mut result = LazyVec::new();
+    pub fn get_items_to_expire_cloned(&self, now: DateTimeAsMicroseconds) -> Vec<T> {
+        let mut result = Vec::new();
         for (expiration_time, items) in &self.index {
             if *expiration_time > now.unix_microseconds {
                 break;
             }
 
             for itm in items.iter() {
-                result.add(itm.clone());
+                result.push(itm.clone());
             }
         }
 
-        result.get_result()
+        result
     }
 
     pub fn has_data_with_expiration_moment(&self, expiration_moment: i64) -> bool {

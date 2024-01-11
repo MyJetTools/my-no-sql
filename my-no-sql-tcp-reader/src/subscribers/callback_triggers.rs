@@ -1,7 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use my_no_sql_abstractions::MyNoSqlEntity;
-use rust_extensions::lazy::LazyVec;
 
 use super::MyNoSqlDataReaderCallBacks;
 
@@ -31,12 +30,12 @@ pub async fn trigger_brand_new_table<
     now_entities: &BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
 ) {
     for (partition_key, now_partition) in now_entities {
-        let mut added = LazyVec::new();
+        let mut added_entities = Vec::new();
         for entity in now_partition.values() {
-            added.add(entity.clone());
+            added_entities.push(entity.clone());
         }
 
-        if let Some(added_entities) = added.get_result() {
+        if added_entities.len() > 0 {
             callbacks
                 .inserted_or_replaced(partition_key, added_entities)
                 .await;
@@ -65,13 +64,13 @@ pub async fn trigger_old_and_new_table_difference<
     }
 
     for (before_partition_key, before_partition) in before {
-        let mut deleted = LazyVec::new();
+        let mut deleted_entities = Vec::new();
 
         for (_, db_row) in before_partition {
-            deleted.add(db_row);
+            deleted_entities.push(db_row);
         }
 
-        if let Some(deleted_entities) = deleted.get_result() {
+        if deleted_entities.len() > 0 {
             callbacks
                 .deleted(before_partition_key.as_str(), deleted_entities)
                 .await;
@@ -91,31 +90,31 @@ pub async fn trigger_partition_difference<
     match before_partition {
         Some(mut before_partition) => {
             for (now_row_key, now_row) in now_partition {
-                let mut inserted_or_replaced = LazyVec::new();
+                let mut inserted_or_replaced = Vec::new();
 
                 match before_partition.remove(now_row_key) {
                     Some(_) => {
-                        inserted_or_replaced.add(now_row.clone());
+                        inserted_or_replaced.push(now_row.clone());
                     }
                     None => {
-                        inserted_or_replaced.add(now_row.clone());
+                        inserted_or_replaced.push(now_row.clone());
                     }
                 }
 
-                if let Some(inserted_or_replaced) = inserted_or_replaced.get_result() {
+                if inserted_or_replaced.len() > 0 {
                     callbacks
                         .inserted_or_replaced(partition_key, inserted_or_replaced)
                         .await;
                 }
             }
 
-            let mut deleted_entities = LazyVec::new();
+            let mut deleted_entities = Vec::new();
 
             for (_, before_row) in before_partition {
-                deleted_entities.add(before_row);
+                deleted_entities.push(before_row);
             }
 
-            if let Some(deleted_entities) = deleted_entities.get_result() {
+            if deleted_entities.len() > 0 {
                 callbacks.deleted(partition_key, deleted_entities).await;
             }
         }
@@ -133,14 +132,14 @@ pub async fn trigger_brand_new_partition<
     partition_key: &str,
     partition: &BTreeMap<String, Arc<TMyNoSqlEntity>>,
 ) {
-    let mut inserted_or_replaced = LazyVec::new();
+    let mut inserted_or_replaced = Vec::new();
     for entity in partition.values() {
-        inserted_or_replaced.add(entity.clone());
+        inserted_or_replaced.push(entity.clone());
     }
 
-    if let Some(inserted_or_replaced_entities) = inserted_or_replaced.get_result() {
+    if inserted_or_replaced.len() > 0 {
         callbacks
-            .inserted_or_replaced(partition_key, inserted_or_replaced_entities)
+            .inserted_or_replaced(partition_key, inserted_or_replaced)
             .await;
     }
 }

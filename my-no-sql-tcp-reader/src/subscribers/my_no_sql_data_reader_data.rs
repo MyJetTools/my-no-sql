@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use my_no_sql_abstractions::MyNoSqlEntity;
-use rust_extensions::{lazy::LazyVec, ApplicationStates};
+use rust_extensions::ApplicationStates;
 
 use super::{MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderCallBacksPusher};
 
@@ -115,7 +115,7 @@ where
 
         for (partition_key, src_entities) in src_data {
             let mut updates = if callbacks.is_some() {
-                Some(LazyVec::new())
+                Some(Vec::new())
             } else {
                 None
             };
@@ -129,14 +129,14 @@ where
             for entity in src_entities {
                 let entity = Arc::new(entity);
                 if let Some(updates) = updates.as_mut() {
-                    updates.add(entity.clone());
+                    updates.push(entity.clone());
                 }
                 by_partition.insert(entity.get_row_key().to_string(), entity);
             }
 
             if let Some(callbacks) = callbacks.as_ref() {
                 if let Some(updates) = updates {
-                    if let Some(updates) = updates.get_result() {
+                    if updates.len() > 0 {
                         callbacks.inserted_or_replaced(partition_key.as_str(), updates);
                     }
                 }

@@ -175,7 +175,7 @@ impl DbTable {
         partition_key: &String,
         db_rows: &[Arc<DbRow>],
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
-    ) -> Option<Vec<Arc<DbRow>>> {
+    ) -> Vec<Arc<DbRow>> {
         for db_row in db_rows {
             self.avg_size.add(db_row);
         }

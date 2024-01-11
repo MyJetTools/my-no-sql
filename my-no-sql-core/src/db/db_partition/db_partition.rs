@@ -1,5 +1,4 @@
 use my_json::json_writer::JsonObject;
-use rust_extensions::lazy::LazyVec;
 
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
@@ -80,7 +79,7 @@ impl DbPartition {
     pub fn get_rows_to_expire(
         &self,
         now: rust_extensions::date_time::DateTimeAsMicroseconds,
-    ) -> Option<Vec<Arc<DbRow>>> {
+    ) -> Vec<Arc<DbRow>> {
         self.rows.get_rows_to_expire(now)
     }
 
@@ -116,22 +115,19 @@ impl DbPartition {
     }
 
     #[inline]
-    pub fn insert_or_replace_rows_bulk(
-        &mut self,
-        db_rows: &[Arc<DbRow>],
-    ) -> Option<Vec<Arc<DbRow>>> {
-        let mut result = LazyVec::new();
+    pub fn insert_or_replace_rows_bulk(&mut self, db_rows: &[Arc<DbRow>]) -> Vec<Arc<DbRow>> {
+        let mut result = Vec::new();
 
         for db_row in db_rows {
             self.content_size += db_row.get_src_as_slice().len();
 
             if let Some(removed_item) = self.rows.insert(db_row.clone()) {
                 self.content_size -= removed_item.get_src_as_slice().len();
-                result.add(removed_item);
+                result.push(removed_item);
             }
         }
 
-        result.get_result()
+        result
     }
 
     pub fn remove_row(&mut self, row_key: &str) -> Option<Arc<DbRow>> {
@@ -147,7 +143,7 @@ impl DbPartition {
         &mut self,
         row_keys: TRowsIterator,
     ) -> Option<Vec<Arc<DbRow>>> {
-        let mut result = LazyVec::new();
+        let mut result = rust_extensions::lazy::LazyVec::new();
 
         for row_key in row_keys {
             if let Some(removed_item) = self.rows.remove(row_key) {
@@ -190,7 +186,7 @@ impl DbPartition {
         &self,
         row_key: &String,
         limit: Option<usize>,
-    ) -> Option<Vec<&Arc<DbRow>>> {
+    ) -> Vec<&Arc<DbRow>> {
         return self.rows.get_highest_row_and_below(row_key, limit);
     }
 

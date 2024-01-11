@@ -35,10 +35,7 @@ impl DbPartitionsContainer {
         self.partitions.values_mut()
     }
     #[cfg(feature = "master-node")]
-    pub fn get_partitions_to_expire(
-        &self,
-        now: DateTimeAsMicroseconds,
-    ) -> Option<Vec<PartitionKey>> {
+    pub fn get_partitions_to_expire(&self, now: DateTimeAsMicroseconds) -> Vec<PartitionKey> {
         self.partitions_to_expire_index.get_items_to_expire(now)
     }
 

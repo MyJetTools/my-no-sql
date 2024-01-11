@@ -49,10 +49,8 @@ impl DbTable {
             }
         }
 
-        if let Some(partitions_to_expire) = self.partitions.get_partitions_to_expire(now) {
-            for partition_key in partitions_to_expire {
-                result.add_partition_to_expire(partition_key);
-            }
+        for partition_key in self.partitions.get_partitions_to_expire(now) {
+            result.add_partition_to_expire(partition_key);
         }
 
         //Find DbRows to expire
@@ -61,7 +59,9 @@ impl DbTable {
                 continue;
             }
 
-            if let Some(rows_to_expire) = db_partition.get_rows_to_expire(now) {
+            let rows_to_expire = db_partition.get_rows_to_expire(now);
+
+            if rows_to_expire.len() > 0 {
                 result.add_rows_to_expire(
                     partition_key,
                     rows_to_expire
