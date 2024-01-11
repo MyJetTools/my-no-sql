@@ -39,6 +39,8 @@ impl TcpSocketSerializer<MyNoSqlTcpContract, ()> for MyNoSqlReaderTcpSerializer 
 }
 
 impl TcpSerializationMetadata<MyNoSqlTcpContract> for () {
-    const THERE_IS_METADATA: bool = false;
+    fn is_tcp_contract_related_to_metadata(&self, _: &MyNoSqlTcpContract) -> bool {
+        false
+    }
     fn apply_tcp_contract(&mut self, _: &MyNoSqlTcpContract) {}
 }
