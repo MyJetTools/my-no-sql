@@ -3,7 +3,7 @@ use std::sync::Arc;
 use my_no_sql_tcp_shared::{
     sync_to_main::SyncToMainNodeHandler, MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract,
 };
-use my_tcp_sockets::{tcp_connection::TcpSocketConnection, ConnectionEvent, SocketEventCallback};
+use my_tcp_sockets::{tcp_connection::TcpSocketConnection, SocketEventCallback};
 
 use crate::subscribers::Subscribers;
 
@@ -24,10 +24,50 @@ impl TcpEvents {
     }
     pub async fn handle_incoming_packet(
         &self,
-        tcp_contract: MyNoSqlTcpContract,
+        _tcp_contract: MyNoSqlTcpContract,
         _connection: Arc<TcpConnection>,
     ) {
-        match tcp_contract {
+    }
+}
+
+#[async_trait::async_trait]
+impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for TcpEvents {
+    async fn connected(
+        &self,
+        connection: Arc<TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>>,
+    ) {
+        let contract = MyNoSqlTcpContract::Greeting {
+            name: self.app_name.to_string(),
+        };
+
+        connection.send(&contract).await;
+
+        for table in self.subscribers.get_tables_to_subscribe().await {
+            let contract = MyNoSqlTcpContract::Subscribe {
+                table_name: table.to_string(),
+            };
+
+            connection.send(&contract).await;
+        }
+
+        self.sync_handler
+            .tcp_events_pusher_new_connection_established(connection);
+    }
+
+    async fn disconnected(
+        &self,
+        connection: Arc<TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>>,
+    ) {
+        self.sync_handler
+            .tcp_events_pusher_connection_disconnected(connection);
+    }
+
+    async fn payload(
+        &self,
+        _connection: &Arc<TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>>,
+        contract: MyNoSqlTcpContract,
+    ) {
+        match contract {
             MyNoSqlTcpContract::Ping => {}
             MyNoSqlTcpContract::Pong => {}
             MyNoSqlTcpContract::Greeting { name: _ } => {}
@@ -97,43 +137,6 @@ impl TcpEvents {
                 row_keys: _,
                 expiration_time: _,
             } => {}
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for TcpEvents {
-    async fn handle(
-        &self,
-        connection_event: ConnectionEvent<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>,
-    ) {
-        match connection_event {
-            ConnectionEvent::Connected(connection) => {
-                let contract = MyNoSqlTcpContract::Greeting {
-                    name: self.app_name.to_string(),
-                };
-
-                connection.send(&contract).await;
-
-                for table in self.subscribers.get_tables_to_subscribe().await {
-                    let contract = MyNoSqlTcpContract::Subscribe {
-                        table_name: table.to_string(),
-                    };
-
-                    connection.send(&contract).await;
-                }
-
-                self.sync_handler
-                    .tcp_events_pusher_new_connection_established(connection);
-            }
-            ConnectionEvent::Disconnected(connection) => {
-                self.sync_handler
-                    .tcp_events_pusher_connection_disconnected(connection);
-            }
-            ConnectionEvent::Payload {
-                connection,
-                payload,
-            } => self.handle_incoming_packet(payload, connection).await,
         }
     }
 }
