@@ -4,7 +4,7 @@ use std::{
 };
 
 use my_no_sql_abstractions::MyNoSqlEntity;
-use rust_extensions::AppStates;
+use rust_extensions::{lazy::LazyVec, AppStates};
 use tokio::sync::RwLock;
 
 use crate::MyNoSqlDataReaderCallBacks;
@@ -115,7 +115,7 @@ where
         partition_key: &str,
     ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         let read_access = self.inner.read().await;
-        let mut result = Vec::new();
+        let mut result = LazyVec::new();
         if let Some(partition) = read_access.items.get(partition_key) {
             for item in partition.values() {
                 result.add(item.clone());
@@ -131,7 +131,7 @@ where
         filter: impl Fn(&TMyNoSqlEntity) -> bool,
     ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         let read_access = self.inner.read().await;
-        let mut result = Vec::new();
+        let mut result = LazyVec::new();
         if let Some(partition) = read_access.items.get(partition_key) {
             for item in partition.values() {
                 if filter(item) {
@@ -158,7 +158,7 @@ where
 
     pub async fn get_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         let read_access = self.inner.read().await;
-        let mut result = Vec::new();
+        let mut result = LazyVec::new();
         for partition in read_access.items.values() {
             for item in partition.values() {
                 result.add(item.clone());
@@ -173,7 +173,7 @@ where
         filter: impl Fn(&TMyNoSqlEntity) -> bool,
     ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         let read_access = self.inner.read().await;
-        let mut result = Vec::new();
+        let mut result = LazyVec::new();
         for partition in read_access.items.values() {
             for item in partition.values() {
                 if filter(item) {

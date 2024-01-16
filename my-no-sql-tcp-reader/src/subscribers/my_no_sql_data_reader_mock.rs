@@ -34,7 +34,13 @@ where
     TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static,
 {
     async fn get_table_snapshot_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
-        self.inner.get_table_snapshot_as_vec().await
+        let result = self.inner.get_table_snapshot_as_vec().await;
+
+        if result.len() == 0 {
+            return None;
+        }
+
+        Some(result)
     }
 
     async fn get_by_partition_key(
