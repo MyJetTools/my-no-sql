@@ -235,7 +235,7 @@ impl DbTable {
 
     pub fn bulk_remove_rows<'s, TIter: Iterator<Item = DbRowKey<'s>>>(
         &mut self,
-        partition_key: &String,
+        partition_key: &str,
         row_keys: TIter,
         delete_empty_partition: bool,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
