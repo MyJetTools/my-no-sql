@@ -4,7 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use rust_extensions::sorted_vec::SortedVecWithStrKey;
 use std::sync::Arc;
 
-use crate::db::{DbPartition, DbRow, DbRowKey};
+use crate::db::{DbPartition, DbRow, DbRowKey, PartitionKeyParameter};
 
 #[cfg(feature = "master-node")]
 use super::DbTableAttributes;
@@ -115,7 +115,7 @@ impl DbTable {
         self.avg_size.add(db_row);
 
         if !self.partitions.has_partition(db_row.get_partition_key()) {
-            let mut db_partition = DbPartition::new(db_row.get_partition_key().to_string());
+            let mut db_partition = DbPartition::new(db_row.clone());
             db_partition.insert_or_replace_row(db_row.clone());
 
             self.partitions.insert(db_partition);
@@ -148,12 +148,7 @@ impl DbTable {
     ) -> bool {
         self.avg_size.add(db_row);
 
-        if !self.partitions.has_partition(db_row.get_partition_key()) {
-            self.partitions
-                .insert(DbPartition::new(db_row.get_partition_key().to_string()));
-        }
-
-        let db_partition = self.partitions.get_mut(db_row.get_partition_key()).unwrap();
+        let db_partition = self.partitions.add_partition_if_not_exists(db_row.clone());
 
         let result = db_partition.insert_row(db_row.clone());
         #[cfg(feature = "master-node")]
@@ -170,7 +165,7 @@ impl DbTable {
     #[inline]
     pub fn bulk_insert_or_replace(
         &mut self,
-        partition_key: &String,
+        partition_key: impl PartitionKeyParameter,
         db_rows: &[Arc<DbRow>],
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Vec<Arc<DbRow>> {
@@ -178,12 +173,7 @@ impl DbTable {
             self.avg_size.add(db_row);
         }
 
-        if !self.partitions.has_partition(partition_key) {
-            self.partitions
-                .insert(DbPartition::new(partition_key.to_string()));
-        }
-
-        let db_partition = self.partitions.get_mut(partition_key).unwrap();
+        let db_partition = self.partitions.add_partition_if_not_exists(partition_key);
 
         let result = db_partition.insert_or_replace_rows_bulk(db_rows);
         #[cfg(feature = "master-node")]

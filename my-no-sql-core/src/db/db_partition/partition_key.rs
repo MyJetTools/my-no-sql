@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use rust_extensions::sorted_vec::EntityWithStrKey;
 
+use super::PartitionKeyParameter;
+
 #[derive(Clone)]
 pub struct PartitionKey(Arc<String>);
 
@@ -56,5 +58,15 @@ impl Into<PartitionKey> for String {
 impl Into<PartitionKey> for Arc<String> {
     fn into(self) -> PartitionKey {
         PartitionKey(self)
+    }
+}
+
+impl PartitionKeyParameter for PartitionKey {
+    fn as_str(&self) -> &str {
+        self.as_str()
+    }
+
+    fn into_partition_key(self) -> PartitionKey {
+        self
     }
 }

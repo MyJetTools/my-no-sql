@@ -1,4 +1,3 @@
-#[cfg(feature = "master-node")]
 use std::sync::Arc;
 
 use my_json::json_writer::JsonObject;
@@ -8,6 +7,7 @@ use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use rust_extensions::sorted_vec::EntityWithStrKey;
 
+use crate::db::PartitionKeyParameter;
 use crate::db_json_entity::DbJsonEntity;
 
 pub struct DbRow {
@@ -172,6 +172,16 @@ impl DbRow {
 impl EntityWithStrKey for DbRow {
     fn get_key(&self) -> &str {
         self.get_row_key()
+    }
+}
+
+impl PartitionKeyParameter for Arc<DbRow> {
+    fn as_str(&self) -> &str {
+        self.get_partition_key()
+    }
+
+    fn into_partition_key(self) -> crate::db::PartitionKey {
+        self.get_partition_key().into()
     }
 }
 

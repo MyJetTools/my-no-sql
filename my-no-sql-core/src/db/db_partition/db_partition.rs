@@ -8,7 +8,7 @@ use crate::db::{DbRow, DbRowKey};
 
 use std::sync::Arc;
 
-use super::{DbRowsContainer, PartitionKey};
+use super::{DbRowsContainer, PartitionKey, PartitionKeyParameter};
 
 pub struct DbPartition {
     pub partition_key: PartitionKey,
@@ -29,9 +29,9 @@ impl EntityWithStrKey for DbPartition {
 }
 
 impl DbPartition {
-    pub fn new(partition_key: String) -> Self {
+    pub fn new(partition_key: impl PartitionKeyParameter) -> Self {
         Self {
-            partition_key: PartitionKey::new(partition_key),
+            partition_key: partition_key.into_partition_key(),
             rows: DbRowsContainer::new(),
             #[cfg(feature = "master-node")]
             last_read_moment: AtomicDateTimeAsMicroseconds::now(),

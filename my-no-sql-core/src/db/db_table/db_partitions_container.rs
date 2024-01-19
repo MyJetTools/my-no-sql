@@ -5,7 +5,7 @@ use rust_extensions::sorted_vec::SortedVecWithStrKey;
 #[cfg(feature = "master-node")]
 use crate::db::PartitionKey;
 
-use crate::db::DbPartition;
+use crate::db::{DbPartition, PartitionKeyParameter};
 #[cfg(feature = "master-node")]
 pub struct PartitionToGc {
     pub partition_key: PartitionKey,
@@ -43,6 +43,23 @@ impl DbPartitionsContainer {
     pub fn get_partitions_to_expire(&self, now: DateTimeAsMicroseconds) -> Vec<PartitionKey> {
         self.partitions_to_expire_index
             .get_items_to_expire(now, |itm| itm.partition_key.clone())
+    }
+
+    pub fn add_partition_if_not_exists(
+        &mut self,
+        partition_key: impl PartitionKeyParameter,
+    ) -> &mut DbPartition {
+        let index = match self
+            .partitions
+            .insert_or_if_not_exists(partition_key.as_str())
+        {
+            rust_extensions::sorted_vec::InsertIfNotExists::Insert(entry) => {
+                entry.insert_and_get_index(DbPartition::new(partition_key))
+            }
+            rust_extensions::sorted_vec::InsertIfNotExists::Exists(index) => index,
+        };
+
+        self.partitions.get_by_index_mut(index).unwrap()
     }
 
     pub fn get(&self, partition_key: &str) -> Option<&DbPartition> {
