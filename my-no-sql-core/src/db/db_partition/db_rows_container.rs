@@ -104,26 +104,8 @@ impl DbRowsContainer {
         self.data.iter()
     }
 
-    pub fn get_highest_row_and_below(
-        &self,
-        row_key: &String,
-        limit: Option<usize>,
-    ) -> Vec<&Arc<DbRow>> {
-        let mut result = Vec::new();
-
-        let items = self.data.get_from_bottom_to_key(row_key);
-
-        for item in items.iter().rev() {
-            result.push(item);
-
-            if let Some(limit) = limit {
-                if result.len() >= limit {
-                    break;
-                }
-            }
-        }
-
-        result
+    pub fn get_highest_row_and_below(&self, row_key: &String) -> &[Arc<DbRow>] {
+        self.data.get_from_bottom_to_key(row_key)
     }
 
     #[cfg(feature = "master-node")]

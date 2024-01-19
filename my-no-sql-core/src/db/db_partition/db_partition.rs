@@ -159,12 +159,8 @@ impl DbPartition {
         Some(result.clone())
     }
 
-    pub fn get_highest_row_and_below(
-        &self,
-        row_key: &String,
-        limit: Option<usize>,
-    ) -> Vec<&Arc<DbRow>> {
-        return self.rows.get_highest_row_and_below(row_key, limit);
+    pub fn get_highest_row_and_below(&self, row_key: &String) -> &[Arc<DbRow>] {
+        self.rows.get_highest_row_and_below(row_key)
     }
 
     pub fn is_empty(&self) -> bool {
