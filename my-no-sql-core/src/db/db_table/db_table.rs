@@ -4,7 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use rust_extensions::sorted_vec::SortedVecWithStrKey;
 use std::sync::Arc;
 
-use crate::db::{DbPartition, DbRow, PartitionKeyParameter, RowKeyParameter};
+use crate::db::{DbPartition, DbRow, PartitionKey, PartitionKeyParameter, RowKeyParameter};
 
 #[cfg(feature = "master-node")]
 use super::DbTableAttributes;
@@ -111,7 +111,7 @@ impl DbTable {
         &mut self,
         db_row: &Arc<DbRow>,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
-    ) -> Option<Arc<DbRow>> {
+    ) -> Option<(PartitionKey, Arc<DbRow>)> {
         self.avg_size.add(db_row);
 
         if !self.partitions.has_partition(db_row.get_partition_key()) {
@@ -137,7 +137,10 @@ impl DbTable {
             db_partition.last_write_moment = set_last_write_moment;
         }
 
-        removed_db_row
+        match removed_db_row {
+            Some(removed_db_row) => Some((db_partition.partition_key.clone(), removed_db_row)),
+            None => None,
+        }
     }
 
     #[inline]
@@ -145,7 +148,7 @@ impl DbTable {
         &mut self,
         db_row: &Arc<DbRow>,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
-    ) -> bool {
+    ) -> (PartitionKey, bool) {
         self.avg_size.add(db_row);
 
         let db_partition = self.partitions.add_partition_if_not_exists(db_row);
@@ -159,7 +162,7 @@ impl DbTable {
             }
         }
 
-        result
+        (db_partition.partition_key.clone(), result)
     }
 
     #[inline]
@@ -168,7 +171,7 @@ impl DbTable {
         partition_key: &impl PartitionKeyParameter,
         db_rows: &[Arc<DbRow>],
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
-    ) -> Vec<Arc<DbRow>> {
+    ) -> (PartitionKey, Vec<Arc<DbRow>>) {
         for db_row in db_rows {
             self.avg_size.add(db_row);
         }
@@ -182,7 +185,7 @@ impl DbTable {
             db_partition.last_write_moment = set_last_write_moment;
         }
 
-        result
+        (db_partition.partition_key.clone(), result)
     }
 
     #[inline]
@@ -202,8 +205,8 @@ impl DbTable {
         row_key: &impl RowKeyParameter,
         delete_empty_partition: bool,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
-    ) -> Option<(Arc<DbRow>, bool)> {
-        let (removed_row, partition_is_empty) = {
+    ) -> Option<(PartitionKey, Arc<DbRow>, bool)> {
+        let (partition_key, removed_row, partition_is_empty) = {
             let db_partition = self.partitions.get_mut(partition_key.as_str())?;
 
             let removed_row = db_partition.remove_row(row_key.as_str())?;
@@ -213,14 +216,18 @@ impl DbTable {
                 db_partition.last_write_moment = set_last_write_moment;
             }
 
-            (removed_row, db_partition.is_empty())
+            (
+                db_partition.partition_key.clone(),
+                removed_row,
+                db_partition.is_empty(),
+            )
         };
 
         if delete_empty_partition && partition_is_empty {
             self.partitions.remove(partition_key.as_str());
         }
 
-        return Some((removed_row, partition_is_empty));
+        return Some((partition_key, removed_row, partition_is_empty));
     }
 
     pub fn bulk_remove_rows(
@@ -229,8 +236,8 @@ impl DbTable {
         row_keys: impl Iterator<Item = impl RowKeyParameter>,
         delete_empty_partition: bool,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
-    ) -> Option<(Vec<Arc<DbRow>>, bool)> {
-        let (removed_rows, partition_is_empty) = {
+    ) -> Option<(PartitionKey, Vec<Arc<DbRow>>, bool)> {
+        let (partition_key, removed_rows, partition_is_empty) = {
             let db_partition = self.partitions.get_mut(partition_key.as_str())?;
 
             let removed_rows = db_partition.remove_rows_bulk(row_keys)?;
@@ -241,14 +248,18 @@ impl DbTable {
                 db_partition.last_write_moment = set_last_write_moment;
             }
 
-            (removed_rows, db_partition.is_empty())
+            (
+                db_partition.partition_key.clone(),
+                removed_rows,
+                db_partition.is_empty(),
+            )
         };
 
         if delete_empty_partition && partition_is_empty {
             self.partitions.remove(partition_key.as_str());
         }
 
-        return Some((removed_rows, partition_is_empty));
+        return Some((partition_key, removed_rows, partition_is_empty));
     }
 
     #[inline]
