@@ -120,18 +120,12 @@ pub async fn to_main_node_pusher(
             event,
             confirmation_id,
         } => {
-            let mut row_keys = Vec::with_capacity(event.row_keys.len());
-
-            for (row_key, _) in event.row_keys {
-                row_keys.push(row_key);
-            }
-
             connection
                 .send(&MyNoSqlTcpContract::UpdateRowsLastReadTime {
                     confirmation_id,
                     table_name: event.table_name,
                     partition_key: event.partition_key,
-                    row_keys,
+                    row_keys: event.row_keys,
                 })
                 .await;
         }

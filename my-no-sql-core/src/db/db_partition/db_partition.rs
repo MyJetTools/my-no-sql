@@ -2,51 +2,13 @@ use my_json::json_writer::JsonObject;
 
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
+use rust_extensions::sorted_vec::EntityWithStrKey;
 
-use crate::{db::DbRow, ExpirationItem};
+use crate::db::DbRow;
 
-use std::{collections::btree_map::Values, sync::Arc};
+use std::sync::Arc;
 
-use super::DbRowsContainer;
-
-#[derive(Clone)]
-pub struct PartitionKey(Arc<String>);
-
-impl PartitionKey {
-    pub fn new(partition_key: String) -> Self {
-        Self(Arc::new(partition_key))
-    }
-
-    pub fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-
-    pub fn as_ref_of_string(&self) -> &String {
-        &self.0
-    }
-
-    pub fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
-impl ExpirationItem for PartitionKey {
-    fn get_id(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl<'s> Into<PartitionKey> for &'s str {
-    fn into(self) -> PartitionKey {
-        PartitionKey::new(self.to_string())
-    }
-}
-
-impl Into<PartitionKey> for String {
-    fn into(self) -> PartitionKey {
-        PartitionKey::new(self)
-    }
-}
+use super::{DbRowsContainer, PartitionKey};
 
 pub struct DbPartition {
     pub partition_key: PartitionKey,
@@ -58,6 +20,12 @@ pub struct DbPartition {
     #[cfg(feature = "master-node")]
     pub last_write_moment: rust_extensions::date_time::DateTimeAsMicroseconds,
     content_size: usize,
+}
+
+impl EntityWithStrKey for DbPartition {
+    fn get_key(&self) -> &str {
+        self.partition_key.as_str()
+    }
 }
 
 impl DbPartition {
@@ -81,6 +49,15 @@ impl DbPartition {
         now: rust_extensions::date_time::DateTimeAsMicroseconds,
     ) -> Vec<Arc<DbRow>> {
         self.rows.get_rows_to_expire(now)
+    }
+    #[cfg(feature = "master-node")]
+    pub fn get_expiration_index_owned(
+        &self,
+    ) -> crate::db::db_table::DbPartitionExpirationIndexOwned {
+        crate::db::db_table::DbPartitionExpirationIndexOwned {
+            expires: self.expires,
+            partition_key: self.partition_key.clone(),
+        }
     }
 
     pub fn get_content_size(&self) -> usize {
@@ -155,7 +132,7 @@ impl DbPartition {
         result.get_result()
     }
 
-    pub fn get_all_rows<'s>(&'s self) -> Values<'s, String, Arc<DbRow>> {
+    pub fn get_all_rows<'s>(&'s self) -> std::slice::Iter<Arc<DbRow>> {
         self.rows.get_all()
     }
 
@@ -192,6 +169,23 @@ impl DbPartition {
 
     pub fn is_empty(&self) -> bool {
         self.rows.len() == 0
+    }
+}
+
+#[cfg(feature = "master-node")]
+impl crate::ExpirationIndex<crate::db::db_table::DbPartitionExpirationIndexOwned> for DbPartition {
+    fn get_id_as_str(&self) -> &str {
+        self.partition_key.as_str()
+    }
+
+    fn to_owned(&self) -> crate::db::db_table::DbPartitionExpirationIndexOwned {
+        crate::db::db_table::DbPartitionExpirationIndexOwned {
+            partition_key: self.partition_key.clone(),
+            expires: self.expires,
+        }
+    }
+    fn get_expiration_moment(&self) -> Option<rust_extensions::date_time::DateTimeAsMicroseconds> {
+        self.expires
     }
 }
 

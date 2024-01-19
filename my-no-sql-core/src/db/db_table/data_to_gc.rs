@@ -1,85 +1,68 @@
-use std::collections::BTreeMap;
+use std::sync::Arc;
 
-use crate::db::PartitionKey;
+use rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
 
-pub struct DataToGceInner {
-    pub partitions: BTreeMap<String, ()>,
-    pub db_rows: BTreeMap<String, Vec<String>>,
+use crate::db::{DbRow, PartitionKey};
+
+pub struct DbRowsToExpire {
+    pub partition_key: PartitionKey,
+    pub rows: Vec<Arc<DbRow>>,
+}
+
+impl EntityWithStrKey for DbRowsToExpire {
+    fn get_key(&self) -> &str {
+        self.partition_key.as_str()
+    }
 }
 
 pub struct DataToGc {
-    inner: Option<DataToGceInner>,
+    pub partitions: SortedVecWithStrKey<PartitionKey>,
+    pub db_rows: SortedVecWithStrKey<DbRowsToExpire>,
 }
 
 impl DataToGc {
     pub fn new() -> Self {
-        Self { inner: None }
-    }
-
-    fn get_inner(&mut self) -> &mut DataToGceInner {
-        if self.inner.is_none() {
-            self.inner = Some(DataToGceInner {
-                partitions: BTreeMap::new(),
-                db_rows: BTreeMap::new(),
-            });
+        Self {
+            partitions: SortedVecWithStrKey::new(),
+            db_rows: SortedVecWithStrKey::new(),
         }
-        self.inner.as_mut().unwrap()
     }
 
     pub fn add_partition_to_expire(&mut self, partition_key: PartitionKey) {
-        let inner = self.get_inner();
-
-        if inner.partitions.contains_key(partition_key.as_str()) {
-            return;
+        match self
+            .partitions
+            .insert_or_if_not_exists(partition_key.as_str())
+        {
+            rust_extensions::sorted_vec::InsertIfNotExists::Insert(entry) => {
+                entry.insert(partition_key)
+            }
+            rust_extensions::sorted_vec::InsertIfNotExists::Exists(_) => {}
         }
-
-        inner.partitions.insert(partition_key.to_string(), ());
     }
 
-    pub fn add_rows_to_expire<'s, TRows: Iterator<Item = String>>(
-        &mut self,
-        partition_key: &str,
-        rows: TRows,
-    ) {
-        let inner = self.get_inner();
-
-        if inner.partitions.contains_key(partition_key) {
+    pub fn add_rows_to_expire(&mut self, partition_key: &PartitionKey, rows: Vec<Arc<DbRow>>) {
+        if self.partitions.contains(partition_key.as_str()) {
             return;
         }
 
-        if !inner.db_rows.contains_key(partition_key) {
-            inner
-                .db_rows
-                .insert(partition_key.to_string(), rows.collect());
-            return;
+        match self.db_rows.insert_or_update(partition_key.as_str()) {
+            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+                entry.insert(DbRowsToExpire {
+                    partition_key: partition_key.clone(),
+                    rows,
+                })
+            }
+            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
+                entry.item.rows.extend(rows)
+            }
         }
-
-        inner.db_rows.get_mut(partition_key).unwrap().extend(rows);
     }
 
     pub fn has_partition_to_gc(&self, partition_key: &str) -> bool {
-        if let Some(inner) = self.inner.as_ref() {
-            inner.partitions.contains_key(partition_key)
-        } else {
-            false
-        }
+        self.partitions.contains(partition_key)
     }
 
     pub fn has_data_to_gc(&self) -> bool {
-        self.inner.is_some()
-    }
-
-    pub fn get_partitions_to_gc(&self) -> Option<&BTreeMap<String, ()>> {
-        let inner = self.inner.as_ref()?;
-        Some(&inner.partitions)
-    }
-
-    pub fn get_rows_to_gc(&self) -> Option<&BTreeMap<String, Vec<String>>> {
-        let inner = self.inner.as_ref()?;
-        Some(&inner.db_rows)
-    }
-
-    pub fn get_data_to_gc(self) -> Option<DataToGceInner> {
-        self.inner
+        self.partitions.len() > 0 || self.db_rows.len() > 0
     }
 }

@@ -1,3 +1,4 @@
+#[cfg(feature = "master-node")]
 use std::sync::Arc;
 
 use my_json::json_writer::JsonObject;
@@ -5,6 +6,7 @@ use my_json::json_writer::JsonObject;
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::sorted_vec::EntityWithStrKey;
 
 use crate::db_json_entity::DbJsonEntity;
 
@@ -19,7 +21,7 @@ pub struct DbRow {
     #[cfg(feature = "master-node")]
     pub time_stamp: crate::db_json_entity::KeyValueContentPosition,
     #[cfg(feature = "master-node")]
-    pub last_read_access: AtomicDateTimeAsMicroseconds,
+    last_read_access: AtomicDateTimeAsMicroseconds,
 }
 
 impl DbRow {
@@ -73,8 +75,15 @@ impl DbRow {
     }
 
     #[cfg(feature = "master-node")]
-    pub fn update_last_read_access(&self, now: rust_extensions::date_time::DateTimeAsMicroseconds) {
-        self.last_read_access.update(now);
+    pub fn update_last_read_access(
+        &self,
+        value: rust_extensions::date_time::DateTimeAsMicroseconds,
+    ) {
+        self.last_read_access.update(value);
+    }
+    #[cfg(feature = "master-node")]
+    pub fn get_last_read_access(&self) -> rust_extensions::date_time::DateTimeAsMicroseconds {
+        self.last_read_access.as_date_time()
     }
 
     #[cfg(feature = "master-node")]
@@ -160,6 +169,12 @@ impl DbRow {
     }
 }
 
+impl EntityWithStrKey for DbRow {
+    fn get_key(&self) -> &str {
+        self.get_row_key()
+    }
+}
+
 #[cfg(feature = "master-node")]
 fn inject_expires(out: &mut Vec<u8>, expires_value: DateTimeAsMicroseconds) {
     out.push(b'"');
@@ -215,9 +230,18 @@ impl JsonObject for &'_ DbRow {
     }
 }
 
-impl crate::ExpirationItem for Arc<DbRow> {
-    fn get_id(&self) -> &str {
+#[cfg(feature = "master-node")]
+impl crate::ExpirationIndex<Arc<DbRow>> for Arc<DbRow> {
+    fn get_id_as_str(&self) -> &str {
         self.get_row_key()
+    }
+
+    fn to_owned(&self) -> Arc<DbRow> {
+        self.clone()
+    }
+
+    fn get_expiration_moment(&self) -> Option<rust_extensions::date_time::DateTimeAsMicroseconds> {
+        self.get_expires()
     }
 }
 

@@ -1,8 +1,22 @@
-use std::collections::BTreeMap;
+use rust_extensions::{
+    date_time::DateTimeAsMicroseconds,
+    sorted_vec::{EntityWithStrKey, SortedVecWithStrKey},
+};
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use crate::db::PartitionKey;
 
 use super::{AvgSize, DataToGc, DbPartitionsContainer, DbTable, DbTableAttributes};
+
+pub struct PartitionLastWriteMoment {
+    pub partition_key: PartitionKey,
+    pub last_write_moment: DateTimeAsMicroseconds,
+}
+
+impl EntityWithStrKey for PartitionLastWriteMoment {
+    fn get_key(&self) -> &str {
+        self.partition_key.as_str()
+    }
+}
 
 impl DbTable {
     pub fn new(name: String, attributes: DbTableAttributes) -> Self {
@@ -25,11 +39,16 @@ impl DbTable {
         result
     }
 
-    pub fn get_partitions_last_write_moment(&self) -> BTreeMap<String, DateTimeAsMicroseconds> {
-        let mut result = BTreeMap::new();
+    pub fn get_partitions_last_write_moment(
+        &self,
+    ) -> SortedVecWithStrKey<PartitionLastWriteMoment> {
+        let mut result = SortedVecWithStrKey::new_with_capacity(self.partitions.len());
 
-        for (pk, db_partition) in self.partitions.get_all() {
-            result.insert(pk.to_string(), db_partition.get_last_write_moment());
+        for db_partition in self.partitions.get_partitions() {
+            result.insert_or_replace(PartitionLastWriteMoment {
+                partition_key: db_partition.partition_key.clone(),
+                last_write_moment: db_partition.last_write_moment,
+            });
         }
 
         result
@@ -43,8 +62,8 @@ impl DbTable {
                 .partitions
                 .get_partitions_to_gc_by_max_amount(max_partitions_amount)
             {
-                for partition_key in partitions_to_expire {
-                    result.add_partition_to_expire(partition_key);
+                for item in partitions_to_expire {
+                    result.add_partition_to_expire(item.partition_key);
                 }
             }
         }
@@ -54,20 +73,15 @@ impl DbTable {
         }
 
         //Find DbRows to expire
-        for (partition_key, db_partition) in self.partitions.get_all() {
-            if result.has_partition_to_gc(partition_key) {
+        for db_partition in self.partitions.get_partitions() {
+            if result.has_partition_to_gc(db_partition.partition_key.as_str()) {
                 continue;
             }
 
             let rows_to_expire = db_partition.get_rows_to_expire(now);
 
             if rows_to_expire.len() > 0 {
-                result.add_rows_to_expire(
-                    partition_key,
-                    rows_to_expire
-                        .iter()
-                        .map(|itm| itm.get_row_key().to_string()),
-                );
+                result.add_rows_to_expire(&db_partition.partition_key, rows_to_expire);
             }
 
             //Find DBRows to GC by max amount
@@ -76,10 +90,7 @@ impl DbTable {
                     .rows
                     .get_rows_to_gc_by_max_amount(max_rows_per_partition)
                 {
-                    result.add_rows_to_expire(
-                        partition_key,
-                        rows_to_gc.iter().map(|itm| itm.get_row_key().to_string()),
-                    );
+                    result.add_rows_to_expire(&db_partition.partition_key, rows_to_gc);
                 }
             }
         }

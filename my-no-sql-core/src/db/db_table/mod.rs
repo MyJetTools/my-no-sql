@@ -18,3 +18,8 @@ mod db_partitions_container;
 pub use db_partitions_container::*;
 mod avg_size;
 pub use avg_size::*;
+
+#[cfg(feature = "master-node")]
+mod db_partition_expiration_index_owned;
+#[cfg(feature = "master-node")]
+pub use db_partition_expiration_index_owned::*;

@@ -1,45 +1,69 @@
-use std::collections::BTreeMap;
+use std::vec;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use rust_extensions::auto_shrink::VecAutoShrink;
+pub trait ExpirationIndex<TOwnedType: Clone> {
+    fn get_id_as_str(&self) -> &str;
+    fn to_owned(&self) -> TOwnedType;
+    fn get_expiration_moment(&self) -> Option<DateTimeAsMicroseconds>;
+}
 
-pub trait ExpirationItem {
-    fn get_id(&self) -> &str;
+pub struct ExpirationIndexItem<TOwnedType: Clone + ExpirationIndex<TOwnedType>> {
+    pub moment: DateTimeAsMicroseconds,
+    pub items: Vec<TOwnedType>,
+}
 
-    fn are_same(&self, other_one: &Self) -> bool {
-        self.get_id() == other_one.get_id()
+impl<TOwnedType: Clone + ExpirationIndex<TOwnedType>> ExpirationIndexItem<TOwnedType> {
+    pub fn new(moment: DateTimeAsMicroseconds, itm: TOwnedType) -> Self {
+        Self {
+            moment,
+            items: vec![itm],
+        }
+    }
+
+    pub fn remove(&mut self, key_as_str: &str) -> bool {
+        self.items.retain(|f| f.get_id_as_str() != key_as_str);
+        self.items.is_empty()
     }
 }
 
-pub struct ExpirationIndex<T: Clone + ExpirationItem> {
-    index: BTreeMap<i64, VecAutoShrink<T>>,
+pub struct ExpirationIndexContainer<TOwnedType: Clone + ExpirationIndex<TOwnedType>> {
+    index: Vec<ExpirationIndexItem<TOwnedType>>,
     amount: usize,
 }
 
-impl<T: Clone + ExpirationItem> ExpirationIndex<T> {
+impl<TOwnedType: Clone + ExpirationIndex<TOwnedType>> ExpirationIndexContainer<TOwnedType> {
     pub fn new() -> Self {
         Self {
-            index: BTreeMap::new(),
+            index: Vec::new(),
             amount: 0,
         }
     }
 
-    pub fn add(&mut self, expiration_moment: Option<DateTimeAsMicroseconds>, item: &T) {
-        if expiration_moment.is_none() {
+    fn find_index(&self, expiration_moment: DateTimeAsMicroseconds) -> Result<usize, usize> {
+        self.index.binary_search_by(|itm| {
+            itm.moment
+                .unix_microseconds
+                .cmp(&expiration_moment.unix_microseconds)
+        })
+    }
+
+    pub fn add(&mut self, item: &impl ExpirationIndex<TOwnedType>) {
+        let expiration_moment = item.get_expiration_moment();
+        if item.get_expiration_moment().is_none() {
             return;
         }
 
-        let expire_moment = expiration_moment.unwrap().unix_microseconds;
+        let expiration_moment = expiration_moment.unwrap();
 
-        match self.index.get_mut(&expire_moment) {
-            Some(items) => {
-                items.push(item.clone());
+        match self.find_index(expiration_moment) {
+            Ok(index) => {
+                self.index[index].items.push(item.to_owned());
             }
-            None => {
+            Err(index) => {
                 self.index.insert(
-                    expire_moment,
-                    VecAutoShrink::new_with_element(32, item.clone()),
+                    index,
+                    ExpirationIndexItem::new(expiration_moment, item.to_owned()),
                 );
             }
         }
@@ -47,54 +71,78 @@ impl<T: Clone + ExpirationItem> ExpirationIndex<T> {
         self.amount += 1;
     }
 
-    pub fn remove(&mut self, expiration_moment: DateTimeAsMicroseconds, item: &T) {
-        let expire_moment = expiration_moment.unix_microseconds;
-
-        let mut is_empty = false;
-        if let Some(items) = self.index.get_mut(&expire_moment) {
-            items.retain(|f| !item.are_same(f));
-            is_empty = items.is_empty();
+    pub fn update(
+        &mut self,
+        old_expires: Option<DateTimeAsMicroseconds>,
+        itm: &impl ExpirationIndex<TOwnedType>,
+    ) {
+        if let Some(old_expires) = old_expires {
+            self.do_remove(old_expires, itm.get_id_as_str());
         }
 
-        if is_empty {
-            self.index.remove(&expire_moment);
+        self.add(itm)
+    }
+
+    pub fn remove(&mut self, itm: &impl ExpirationIndex<TOwnedType>) {
+        let expiration_moment = itm.get_expiration_moment();
+
+        if expiration_moment.is_none() {
+            return;
+        }
+
+        self.do_remove(expiration_moment.unwrap(), itm.get_id_as_str());
+    }
+
+    fn do_remove(&mut self, expiration_moment: DateTimeAsMicroseconds, key_as_str: &str) {
+        match self.find_index(expiration_moment) {
+            Ok(index) => {
+                let mut remove_index = None;
+
+                if let Some(items) = self.index.get_mut(index) {
+                    if items.remove(key_as_str) {
+                        remove_index = Some(index);
+                    }
+                }
+
+                if let Some(remove_index) = remove_index {
+                    self.index.remove(remove_index);
+                }
+            }
+            Err(_) => {
+                panic!(
+                    "Somehow we did not find the index for expiration moment {} of '{}'. Expiration moment as rfc3339 is {}",
+                    expiration_moment.unix_microseconds, key_as_str, expiration_moment.to_rfc3339()
+                );
+            }
         }
 
         self.amount -= 1;
     }
 
-    pub fn get_items_to_expire(&self, now: DateTimeAsMicroseconds) -> Vec<T> {
+    pub fn get_items_to_expire<TResult>(
+        &self,
+        now: DateTimeAsMicroseconds,
+        transform: impl Fn(&TOwnedType) -> TResult,
+    ) -> Vec<TResult> {
         let mut result = Vec::new();
-        for (expiration_time, items) in &self.index {
-            if *expiration_time > now.unix_microseconds {
+        for expiration_item in &self.index {
+            if expiration_item.moment.unix_microseconds > now.unix_microseconds {
                 break;
             }
 
-            for itm in items.iter() {
-                result.push(itm.clone());
+            for itm in expiration_item.items.iter() {
+                result.push(transform(itm));
             }
         }
 
         result
     }
 
-    pub fn get_items_to_expire_cloned(&self, now: DateTimeAsMicroseconds) -> Vec<T> {
-        let mut result = Vec::new();
-        for (expiration_time, items) in &self.index {
-            if *expiration_time > now.unix_microseconds {
-                break;
-            }
-
-            for itm in items.iter() {
-                result.push(itm.clone());
-            }
-        }
-
-        result
-    }
-
-    pub fn has_data_with_expiration_moment(&self, expiration_moment: i64) -> bool {
-        self.index.contains_key(&expiration_moment)
+    pub fn has_data_with_expiration_moment(
+        &self,
+        expiration_moment: DateTimeAsMicroseconds,
+    ) -> bool {
+        self.find_index(expiration_moment).is_ok()
     }
 
     pub fn len(&self) -> usize {
@@ -103,5 +151,73 @@ impl<T: Clone + ExpirationItem> ExpirationIndex<T> {
 
     pub fn clear(&mut self) {
         self.index.clear();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rust_extensions::date_time::DateTimeAsMicroseconds;
+
+    use crate::ExpirationIndex;
+
+    #[derive(Clone)]
+    pub struct TestExpirationItem {
+        pub key: String,
+        pub expires: Option<DateTimeAsMicroseconds>,
+    }
+
+    impl ExpirationIndex<TestExpirationItem> for TestExpirationItem {
+        fn get_id_as_str(&self) -> &str {
+            &self.key
+        }
+
+        fn to_owned(&self) -> TestExpirationItem {
+            self.clone()
+        }
+
+        fn get_expiration_moment(&self) -> Option<DateTimeAsMicroseconds> {
+            self.expires
+        }
+    }
+
+    #[cfg(test)]
+    mod test {
+        use rust_extensions::date_time::DateTimeAsMicroseconds;
+
+        use crate::ExpirationIndexContainer;
+
+        use super::TestExpirationItem;
+
+        #[test]
+        fn test_insert_expiration_key() {
+            let mut index = ExpirationIndexContainer::new();
+
+            let item = TestExpirationItem {
+                key: "2".to_string(),
+                expires: DateTimeAsMicroseconds::new(2).into(),
+            };
+
+            index.add(&item);
+
+            assert_eq!(index.len(), 1);
+
+            let item = TestExpirationItem {
+                key: "1".to_string(),
+                expires: DateTimeAsMicroseconds::new(1).into(),
+            };
+
+            index.add(&item);
+
+            assert_eq!(index.len(), 2);
+
+            assert_eq!(
+                vec![1, 2],
+                index
+                    .index
+                    .iter()
+                    .map(|itm| itm.moment.unix_microseconds)
+                    .collect::<Vec<_>>()
+            );
+        }
     }
 }

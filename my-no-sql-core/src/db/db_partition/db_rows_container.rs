@@ -1,25 +1,23 @@
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-use std::{
-    collections::{btree_map::Values, BTreeMap},
-    sync::Arc,
-};
+use rust_extensions::sorted_vec::SortedVecOfArcWithStrKey;
+use std::sync::Arc;
 
 use crate::db::DbRow;
 
 pub struct DbRowsContainer {
-    data: BTreeMap<String, Arc<DbRow>>,
+    data: SortedVecOfArcWithStrKey<DbRow>,
 
     #[cfg(feature = "master-node")]
-    rows_with_expiration_index: crate::ExpirationIndex<Arc<DbRow>>,
+    rows_with_expiration_index: crate::ExpirationIndexContainer<Arc<DbRow>>,
 }
 
 impl DbRowsContainer {
     pub fn new() -> Self {
         Self {
-            data: BTreeMap::new(),
+            data: SortedVecOfArcWithStrKey::new(),
             #[cfg(feature = "master-node")]
-            rows_with_expiration_index: crate::ExpirationIndex::new(),
+            rows_with_expiration_index: crate::ExpirationIndexContainer::new(),
         }
     }
 
@@ -33,7 +31,8 @@ impl DbRowsContainer {
     }
     #[cfg(feature = "master-node")]
     pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Vec<Arc<DbRow>> {
-        self.rows_with_expiration_index.get_items_to_expire(now)
+        self.rows_with_expiration_index
+            .get_items_to_expire(now, |itm| itm.clone())
     }
 
     #[cfg(feature = "master-node")]
@@ -42,41 +41,44 @@ impl DbRowsContainer {
             return None;
         }
 
-        let mut by_last_read_access = BTreeMap::new();
+        let mut by_last_read_access = Vec::new();
 
-        for db_row in self.data.values() {
-            let last_read_access = db_row.last_read_access.get_unix_microseconds();
-            by_last_read_access.insert(last_read_access, db_row.clone());
+        for db_row in self.data.iter() {
+            match by_last_read_access.binary_search_by(|itm: &Arc<DbRow>| {
+                itm.get_last_read_access()
+                    .unix_microseconds
+                    .cmp(&db_row.get_last_read_access().unix_microseconds)
+            }) {
+                Ok(index) => {
+                    by_last_read_access.insert(index, db_row.clone());
+                }
+                Err(index) => {
+                    by_last_read_access.insert(index, db_row.clone());
+                }
+            }
+
+            //by_last_read_access.insert(last_read_access, db_row.clone());
         }
 
-        let records_amount_to_gc = self.data.len() - max_rows_amount;
-
-        let mut result = Vec::with_capacity(records_amount_to_gc);
-
-        while result.len() < records_amount_to_gc {
-            let first = by_last_read_access.pop_first();
-            result.push(first.unwrap().1);
+        while by_last_read_access.len() > max_rows_amount {
+            by_last_read_access.pop();
         }
 
-        Some(result)
+        Some(by_last_read_access)
     }
 
     pub fn insert(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
         #[cfg(feature = "master-node")]
-        self.rows_with_expiration_index
-            .add(db_row.get_expires(), &db_row);
+        self.rows_with_expiration_index.add(&db_row);
 
-        let result = self.data.insert(db_row.get_row_key().to_string(), db_row);
+        let (_, removed_db_row) = self.data.insert_or_replace(db_row);
 
         #[cfg(feature = "master-node")]
-        if let Some(removed_db_row) = &result {
-            if let Some(old_expires) = removed_db_row.get_expires() {
-                self.rows_with_expiration_index
-                    .remove(old_expires, &removed_db_row);
-            }
+        if let Some(removed_db_row) = &removed_db_row {
+            self.rows_with_expiration_index.remove(removed_db_row);
         }
 
-        result
+        removed_db_row
     }
 
     pub fn remove(&mut self, row_key: &str) -> Option<Arc<DbRow>> {
@@ -84,10 +86,7 @@ impl DbRowsContainer {
 
         #[cfg(feature = "master-node")]
         if let Some(removed_db_row) = &result {
-            if let Some(expires) = removed_db_row.get_expires() {
-                self.rows_with_expiration_index
-                    .remove(expires, &removed_db_row);
-            }
+            self.rows_with_expiration_index.remove(removed_db_row);
         }
 
         result
@@ -98,11 +97,11 @@ impl DbRowsContainer {
     }
 
     pub fn has_db_row(&self, row_key: &str) -> bool {
-        return self.data.contains_key(row_key);
+        return self.data.contains(row_key);
     }
 
-    pub fn get_all<'s>(&'s self) -> Values<'s, String, Arc<DbRow>> {
-        self.data.values()
+    pub fn get_all<'s>(&'s self) -> std::slice::Iter<Arc<DbRow>> {
+        self.data.iter()
     }
 
     pub fn get_highest_row_and_below(
@@ -112,14 +111,14 @@ impl DbRowsContainer {
     ) -> Vec<&Arc<DbRow>> {
         let mut result = Vec::new();
 
-        for (db_row_key, db_row) in self.data.range(..row_key.to_string()) {
-            if db_row_key <= row_key {
-                result.push(db_row);
+        let items = self.data.get_from_bottom_to_key(row_key);
 
-                if let Some(limit) = limit {
-                    if result.len() >= limit {
-                        break;
-                    }
+        for item in items.iter().rev() {
+            result.push(item);
+
+            if let Some(limit) = limit {
+                if result.len() >= limit {
+                    break;
                 }
             }
         }
@@ -136,16 +135,11 @@ impl DbRowsContainer {
         if let Some(db_row) = self.get(row_key).cloned() {
             let old_expires = db_row.update_expires(expiration_time);
 
-            self.rows_with_expiration_index
-                .add(expiration_time, &db_row);
-
             if are_expires_the_same(old_expires, expiration_time) {
                 return None;
             }
 
-            if let Some(old_expires) = old_expires {
-                self.rows_with_expiration_index.remove(old_expires, &db_row);
-            }
+            self.rows_with_expiration_index.update(old_expires, &db_row);
 
             return Some(db_row);
         }
@@ -263,7 +257,7 @@ mod tests {
             true,
             db_rows
                 .rows_with_expiration_index
-                .has_data_with_expiration_moment(2)
+                .has_data_with_expiration_moment(DateTimeAsMicroseconds::new(2))
         );
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
     }
@@ -289,7 +283,7 @@ mod tests {
             true,
             db_rows
                 .rows_with_expiration_index
-                .has_data_with_expiration_moment(current_expiration.unix_microseconds)
+                .has_data_with_expiration_moment(current_expiration)
         );
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
 
@@ -299,7 +293,7 @@ mod tests {
             true,
             db_rows
                 .rows_with_expiration_index
-                .has_data_with_expiration_moment(2)
+                .has_data_with_expiration_moment(DateTimeAsMicroseconds::new(2))
         );
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
     }
@@ -325,7 +319,7 @@ mod tests {
             true,
             db_rows
                 .rows_with_expiration_index
-                .has_data_with_expiration_moment(current_expiration.unix_microseconds)
+                .has_data_with_expiration_moment(current_expiration)
         );
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
 
@@ -352,7 +346,9 @@ mod tests {
         let mut now = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
         now.unix_microseconds -= 1;
 
-        let rows_to_expire = db_rows.rows_with_expiration_index.get_items_to_expire(now);
+        let rows_to_expire = db_rows
+            .rows_with_expiration_index
+            .get_items_to_expire(now, |itm| itm.clone());
 
         assert_eq!(0, rows_to_expire.len());
     }
@@ -374,7 +370,9 @@ mod tests {
 
         let now = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
 
-        let rows_to_expire = db_rows.rows_with_expiration_index.get_items_to_expire(now);
+        let rows_to_expire = db_rows
+            .rows_with_expiration_index
+            .get_items_to_expire(now, |itm| itm.clone());
 
         assert_eq!(true, rows_to_expire.len() > 0);
     }

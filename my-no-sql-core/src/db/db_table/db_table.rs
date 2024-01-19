@@ -1,10 +1,8 @@
 use my_json::json_writer::JsonArrayWriter;
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-use std::{
-    collections::{btree_map::Values, BTreeMap},
-    sync::Arc,
-};
+use rust_extensions::sorted_vec::SortedVecWithStrKey;
+use std::sync::Arc;
 
 use crate::db::{DbPartition, DbRow};
 
@@ -100,7 +98,7 @@ impl DbTable {
         self.partitions.get(partition_key)
     }
     #[inline]
-    pub fn get_partitions(&self) -> Values<String, DbPartition> {
+    pub fn get_partitions(&self) -> std::slice::Iter<DbPartition> {
         self.partitions.get_partitions()
     }
 }
@@ -281,7 +279,7 @@ impl DbTable {
         removed_partition
     }
 
-    pub fn clear_table(&mut self) -> Option<BTreeMap<String, DbPartition>> {
+    pub fn clear_table(&mut self) -> Option<SortedVecWithStrKey<DbPartition>> {
         self.partitions.clear()
     }
 }
