@@ -4,7 +4,7 @@ use my_json::json_writer::JsonObject;
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 use rust_extensions::sorted_vec::EntityWithStrKey;
 
-use crate::db::{DbRow, DbRowKey};
+use crate::db::{DbRow, RowKeyParameter};
 
 use std::sync::Arc;
 
@@ -116,9 +116,9 @@ impl DbPartition {
         result
     }
 
-    pub fn remove_rows_bulk<'s, TRowsIterator: Iterator<Item = DbRowKey<'s>>>(
+    pub fn remove_rows_bulk(
         &mut self,
-        row_keys: TRowsIterator,
+        row_keys: impl Iterator<Item = impl RowKeyParameter>,
     ) -> Option<Vec<Arc<DbRow>>> {
         let mut result = rust_extensions::lazy::LazyVec::new();
 

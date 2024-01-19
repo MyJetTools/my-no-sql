@@ -10,6 +10,8 @@ use rust_extensions::sorted_vec::EntityWithStrKey;
 use crate::db::PartitionKeyParameter;
 use crate::db_json_entity::DbJsonEntity;
 
+use super::RowKeyParameter;
+
 pub struct DbRow {
     partition_key: crate::db_json_entity::KeyValueContentPosition,
     row_key: crate::db_json_entity::KeyValueContentPosition,
@@ -182,6 +184,12 @@ impl PartitionKeyParameter for Arc<DbRow> {
 
     fn into_partition_key(self) -> crate::db::PartitionKey {
         self.get_partition_key().into()
+    }
+}
+
+impl RowKeyParameter for Arc<DbRow> {
+    fn as_str(&self) -> &str {
+        self.get_row_key()
     }
 }
 
