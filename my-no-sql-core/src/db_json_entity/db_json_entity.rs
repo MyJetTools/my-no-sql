@@ -259,7 +259,7 @@ impl DbJsonEntity {
                     result[index].1.push(Arc::new(db_row));
                 }
                 Err(index) => {
-                    result.insert(index, (partition_key.to_string(), Vec::new()));
+                    result.insert(index, (partition_key.to_string(), vec![Arc::new(db_row)]));
                 }
             }
         }
@@ -285,7 +285,7 @@ impl DbJsonEntity {
                     result[index].1.push(Arc::new(db_row));
                 }
                 Err(index) => {
-                    result.insert(index, (partition_key.to_string(), Vec::new()));
+                    result.insert(index, (partition_key.to_string(), vec![Arc::new(db_row)]));
                 }
             }
         }
