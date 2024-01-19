@@ -69,4 +69,8 @@ impl PartitionKeyParameter for PartitionKey {
     fn into_partition_key(self) -> PartitionKey {
         self
     }
+
+    fn to_partition_key(&self) -> PartitionKey {
+        self.clone()
+    }
 }

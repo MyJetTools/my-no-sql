@@ -47,14 +47,14 @@ impl DbPartitionsContainer {
 
     pub fn add_partition_if_not_exists(
         &mut self,
-        partition_key: impl PartitionKeyParameter,
+        partition_key: &impl PartitionKeyParameter,
     ) -> &mut DbPartition {
         let index = match self
             .partitions
             .insert_or_if_not_exists(partition_key.as_str())
         {
             rust_extensions::sorted_vec::InsertIfNotExists::Insert(entry) => {
-                entry.insert_and_get_index(DbPartition::new(partition_key))
+                entry.insert_and_get_index(DbPartition::new(partition_key.to_partition_key()))
             }
             rust_extensions::sorted_vec::InsertIfNotExists::Exists(index) => index,
         };

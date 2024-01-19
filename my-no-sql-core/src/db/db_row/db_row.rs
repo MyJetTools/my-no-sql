@@ -185,6 +185,10 @@ impl PartitionKeyParameter for Arc<DbRow> {
     fn into_partition_key(self) -> crate::db::PartitionKey {
         self.get_partition_key().into()
     }
+
+    fn to_partition_key(&self) -> crate::db::PartitionKey {
+        self.get_partition_key().into()
+    }
 }
 
 impl RowKeyParameter for Arc<DbRow> {

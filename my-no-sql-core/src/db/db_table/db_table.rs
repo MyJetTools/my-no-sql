@@ -148,7 +148,7 @@ impl DbTable {
     ) -> bool {
         self.avg_size.add(db_row);
 
-        let db_partition = self.partitions.add_partition_if_not_exists(db_row.clone());
+        let db_partition = self.partitions.add_partition_if_not_exists(db_row);
 
         let result = db_partition.insert_row(db_row.clone());
         #[cfg(feature = "master-node")]
@@ -165,7 +165,7 @@ impl DbTable {
     #[inline]
     pub fn bulk_insert_or_replace(
         &mut self,
-        partition_key: impl PartitionKeyParameter,
+        partition_key: &impl PartitionKeyParameter,
         db_rows: &[Arc<DbRow>],
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Vec<Arc<DbRow>> {
