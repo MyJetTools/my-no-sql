@@ -111,26 +111,11 @@ impl DbTable {
         &mut self,
         db_row: &Arc<DbRow>,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
-    ) -> (PartitionKey, Option<Arc<DbRow>>) {
+    ) -> (&PartitionKey, Option<Arc<DbRow>>) {
         self.avg_size.add(db_row);
 
-        if !self.partitions.has_partition(db_row.get_partition_key()) {
-            let mut db_partition = DbPartition::new(db_row.clone());
-            db_partition.insert_or_replace_row(db_row.clone());
+        let db_partition = self.partitions.add_partition_if_not_exists(db_row);
 
-            let partition_key = db_partition.partition_key.clone();
-
-            self.partitions.insert(db_partition);
-
-            #[cfg(feature = "master-node")]
-            if let Some(set_last_write_moment) = set_last_write_moment {
-                self.last_write_moment = set_last_write_moment;
-            }
-
-            return (partition_key, None);
-        }
-
-        let db_partition = self.partitions.get_mut(db_row.get_partition_key()).unwrap();
         let removed_db_row = db_partition.insert_or_replace_row(db_row.clone());
 
         #[cfg(feature = "master-node")]
@@ -139,7 +124,7 @@ impl DbTable {
             db_partition.last_write_moment = set_last_write_moment;
         }
 
-        (db_partition.partition_key.clone(), removed_db_row)
+        (&db_partition.partition_key, removed_db_row)
     }
 
     #[inline]
@@ -147,7 +132,7 @@ impl DbTable {
         &mut self,
         db_row: &Arc<DbRow>,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
-    ) -> Option<PartitionKey> {
+    ) -> Option<&PartitionKey> {
         self.avg_size.add(db_row);
 
         let db_partition = self.partitions.add_partition_if_not_exists(db_row);
@@ -161,7 +146,7 @@ impl DbTable {
             }
         }
         if result {
-            Some(db_partition.partition_key.clone())
+            Some(&db_partition.partition_key)
         } else {
             None
         }
@@ -173,7 +158,7 @@ impl DbTable {
         partition_key: &impl PartitionKeyParameter,
         db_rows: &[Arc<DbRow>],
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
-    ) -> (PartitionKey, Vec<Arc<DbRow>>) {
+    ) -> (&PartitionKey, Vec<Arc<DbRow>>) {
         for db_row in db_rows {
             self.avg_size.add(db_row);
         }
@@ -187,7 +172,7 @@ impl DbTable {
             db_partition.last_write_moment = set_last_write_moment;
         }
 
-        (db_partition.partition_key.clone(), result)
+        (&db_partition.partition_key, result)
     }
 
     #[inline]
