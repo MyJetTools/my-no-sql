@@ -254,7 +254,7 @@ impl DbTable {
     #[inline]
     pub fn remove_partition(
         &mut self,
-        partition_key: impl PartitionKeyParameter,
+        partition_key: &impl PartitionKeyParameter,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<DbPartition> {
         let removed_partition = self.partitions.remove(partition_key.as_str());
