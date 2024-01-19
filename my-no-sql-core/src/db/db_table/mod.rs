@@ -23,3 +23,5 @@ pub use avg_size::*;
 mod db_partition_expiration_index_owned;
 #[cfg(feature = "master-node")]
 pub use db_partition_expiration_index_owned::*;
+mod all_db_rows_iterator;
+pub use all_db_rows_iterator::*;
