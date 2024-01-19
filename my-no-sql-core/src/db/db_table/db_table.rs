@@ -198,8 +198,8 @@ impl DbTable {
 impl DbTable {
     pub fn remove_row(
         &mut self,
-        partition_key: impl PartitionKeyParameter,
-        row_key: impl RowKeyParameter,
+        partition_key: &impl PartitionKeyParameter,
+        row_key: &impl RowKeyParameter,
         delete_empty_partition: bool,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<(Arc<DbRow>, bool)> {
@@ -223,10 +223,10 @@ impl DbTable {
         return Some((removed_row, partition_is_empty));
     }
 
-    pub fn bulk_remove_rows<'s, TIter: Iterator<Item = impl RowKeyParameter>>(
+    pub fn bulk_remove_rows(
         &mut self,
-        partition_key: impl PartitionKeyParameter,
-        row_keys: TIter,
+        partition_key: &impl PartitionKeyParameter,
+        row_keys: impl Iterator<Item = impl RowKeyParameter>,
         delete_empty_partition: bool,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<(Vec<Arc<DbRow>>, bool)> {
