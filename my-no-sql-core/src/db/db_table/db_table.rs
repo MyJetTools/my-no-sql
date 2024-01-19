@@ -8,7 +8,7 @@ use crate::db::{DbPartition, DbRow, PartitionKey, PartitionKeyParameter, RowKeyP
 
 #[cfg(feature = "master-node")]
 use super::DbTableAttributes;
-use super::{AllDbRowsIterator, AvgSize, DbPartitionsContainer};
+use super::{AllDbRowsIterator, AvgSize, ByRowKeyIterator, DbPartitionsContainer};
 
 pub struct DbTable {
     pub name: String,
@@ -45,6 +45,15 @@ impl DbTable {
         limit: Option<usize>,
     ) -> AllDbRowsIterator<'s> {
         AllDbRowsIterator::new(self.partitions.get_partitions(), skip, limit)
+    }
+
+    pub fn get_by_row_key<'s>(
+        &'s self,
+        row_key: &'s str,
+        skip: Option<usize>,
+        limit: Option<usize>,
+    ) -> ByRowKeyIterator<'s> {
+        ByRowKeyIterator::new(self.partitions.get_partitions(), row_key, skip, limit)
     }
 
     pub fn get_table_as_json_array(&self) -> JsonArrayWriter {

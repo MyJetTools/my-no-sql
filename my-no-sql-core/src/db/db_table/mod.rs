@@ -25,3 +25,5 @@ mod db_partition_expiration_index_owned;
 pub use db_partition_expiration_index_owned::*;
 mod all_db_rows_iterator;
 pub use all_db_rows_iterator::*;
+mod by_row_key_iterator;
+pub use by_row_key_iterator::*;
