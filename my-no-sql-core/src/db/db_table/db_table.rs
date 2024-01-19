@@ -39,8 +39,12 @@ impl DbTable {
         self.last_write_moment
     }
 
-    pub fn get_all_rows<'s>(&'s self) -> AllDbRowsIterator<'s> {
-        AllDbRowsIterator::new(self.partitions.get_partitions())
+    pub fn get_all_rows<'s>(
+        &'s self,
+        skip: Option<usize>,
+        limit: Option<usize>,
+    ) -> AllDbRowsIterator<'s> {
+        AllDbRowsIterator::new(self.partitions.get_partitions(), skip, limit)
     }
 
     pub fn get_table_as_json_array(&self) -> JsonArrayWriter {
