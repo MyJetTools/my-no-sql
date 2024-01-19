@@ -225,13 +225,13 @@ impl DbTable {
 
     pub fn bulk_remove_rows<'s, TIter: Iterator<Item = DbRowKey<'s>>>(
         &mut self,
-        partition_key: &str,
+        partition_key: impl PartitionKeyParameter,
         row_keys: TIter,
         delete_empty_partition: bool,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<(Vec<Arc<DbRow>>, bool)> {
         let (removed_rows, partition_is_empty) = {
-            let db_partition = self.partitions.get_mut(partition_key)?;
+            let db_partition = self.partitions.get_mut(partition_key.as_str())?;
 
             let removed_rows = db_partition.remove_rows_bulk(row_keys)?;
 
@@ -245,7 +245,7 @@ impl DbTable {
         };
 
         if delete_empty_partition && partition_is_empty {
-            self.partitions.remove(partition_key);
+            self.partitions.remove(partition_key.as_str());
         }
 
         return Some((removed_rows, partition_is_empty));
