@@ -4,7 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use rust_extensions::sorted_vec::SortedVecWithStrKey;
 use std::sync::Arc;
 
-use crate::db::{DbPartition, DbRow};
+use crate::db::{DbPartition, DbRow, DbRowKey};
 
 #[cfg(feature = "master-node")]
 use super::DbTableAttributes;
@@ -209,14 +209,14 @@ impl DbTable {
     pub fn remove_row(
         &mut self,
         partition_key: &String,
-        row_key: &str,
+        row_key: DbRowKey,
         delete_empty_partition: bool,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<(Arc<DbRow>, bool)> {
         let (removed_row, partition_is_empty) = {
             let db_partition = self.partitions.get_mut(partition_key)?;
 
-            let removed_row = db_partition.remove_row(row_key)?;
+            let removed_row = db_partition.remove_row(row_key.as_str())?;
             #[cfg(feature = "master-node")]
             if let Some(set_last_write_moment) = set_last_write_moment {
                 self.last_write_moment = DateTimeAsMicroseconds::now();
@@ -233,7 +233,7 @@ impl DbTable {
         return Some((removed_row, partition_is_empty));
     }
 
-    pub fn bulk_remove_rows<'s, TIter: Iterator<Item = &'s String>>(
+    pub fn bulk_remove_rows<'s, TIter: Iterator<Item = DbRowKey<'s>>>(
         &mut self,
         partition_key: &String,
         row_keys: TIter,
