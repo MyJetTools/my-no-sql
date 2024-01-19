@@ -198,13 +198,13 @@ impl DbTable {
 impl DbTable {
     pub fn remove_row(
         &mut self,
-        partition_key: &String,
+        partition_key: impl PartitionKeyParameter,
         row_key: DbRowKey,
         delete_empty_partition: bool,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<(Arc<DbRow>, bool)> {
         let (removed_row, partition_is_empty) = {
-            let db_partition = self.partitions.get_mut(partition_key)?;
+            let db_partition = self.partitions.get_mut(partition_key.as_str())?;
 
             let removed_row = db_partition.remove_row(row_key.as_str())?;
             #[cfg(feature = "master-node")]
@@ -217,7 +217,7 @@ impl DbTable {
         };
 
         if delete_empty_partition && partition_is_empty {
-            self.partitions.remove(partition_key);
+            self.partitions.remove(partition_key.as_str());
         }
 
         return Some((removed_row, partition_is_empty));
@@ -254,10 +254,10 @@ impl DbTable {
     #[inline]
     pub fn remove_partition(
         &mut self,
-        partition_key: &str,
+        partition_key: impl PartitionKeyParameter,
         #[cfg(feature = "master-node")] set_last_write_moment: Option<DateTimeAsMicroseconds>,
     ) -> Option<DbPartition> {
-        let removed_partition = self.partitions.remove(partition_key);
+        let removed_partition = self.partitions.remove(partition_key.as_str());
 
         #[cfg(feature = "master-node")]
         if removed_partition.is_some() {
