@@ -3,7 +3,7 @@ use crate::db::DbRow;
 use my_json::json_reader::array_parser::ArrayToJsonObjectsSplitter;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use super::DbEntityParseFail;
 use super::DbJsonEntityWithContent;
@@ -240,34 +240,37 @@ impl DbJsonEntity {
         return Ok(result);
     }
 
-    pub fn parse_as_btreemap(
-        src: &[u8],
+    pub fn parse_grouped_partition_key<'s>(
+        src: &'s [u8],
         inject_time_stamp: &JsonTimeStamp,
-    ) -> Result<BTreeMap<String, Vec<Arc<DbRow>>>, DbEntityParseFail> {
-        let mut result = BTreeMap::new();
+    ) -> Result<Vec<(String, Vec<Arc<DbRow>>)>, DbEntityParseFail> {
+        let mut result = Vec::new();
 
         for json in src.split_array_json_to_objects() {
             let json = json?;
             let db_row = DbJsonEntity::parse_into_db_row(json, inject_time_stamp)?;
 
             let partition_key = db_row.get_partition_key();
-            if !result.contains_key(partition_key) {
-                result.insert(partition_key.to_string(), Vec::new());
-            }
 
-            result
-                .get_mut(partition_key)
-                .unwrap()
-                .push(Arc::new(db_row));
+            match result.binary_search_by(|itm: &(String, Vec<Arc<DbRow>>)| {
+                itm.0.as_str().cmp(partition_key)
+            }) {
+                Ok(index) => {
+                    result[index].1.push(Arc::new(db_row));
+                }
+                Err(index) => {
+                    result.insert(index, (partition_key.to_string(), Vec::new()));
+                }
+            }
         }
 
-        return Ok(result);
+        Ok(result)
     }
 
-    pub fn restore_as_btreemap(
+    pub fn restore_grouped_by_partition_key(
         src: &[u8],
-    ) -> Result<BTreeMap<String, Vec<Arc<DbRow>>>, DbEntityParseFail> {
-        let mut result = BTreeMap::new();
+    ) -> Result<Vec<(String, Vec<Arc<DbRow>>)>, DbEntityParseFail> {
+        let mut result = Vec::new();
 
         for json in src.split_array_json_to_objects() {
             let json = json?;
@@ -275,14 +278,16 @@ impl DbJsonEntity {
 
             let partition_key = db_row.get_partition_key();
 
-            if !result.contains_key(partition_key) {
-                result.insert(partition_key.to_string(), Vec::new());
+            match result.binary_search_by(|itm: &(String, Vec<Arc<DbRow>>)| {
+                itm.0.as_str().cmp(partition_key)
+            }) {
+                Ok(index) => {
+                    result[index].1.push(Arc::new(db_row));
+                }
+                Err(index) => {
+                    result.insert(index, (partition_key.to_string(), Vec::new()));
+                }
             }
-
-            result
-                .get_mut(partition_key)
-                .unwrap()
-                .push(Arc::new(db_row));
         }
 
         return Ok(result);
