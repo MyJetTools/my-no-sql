@@ -7,7 +7,7 @@ pub mod db_table_master_node;
 #[cfg(feature = "master-node")]
 pub use db_table_attributes::*;
 
-pub use db_table::DbTable;
+pub use db_table::*;
 
 #[cfg(feature = "master-node")]
 mod data_to_gc;
