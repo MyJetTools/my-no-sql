@@ -240,7 +240,7 @@ impl DbJsonEntity {
         return Ok(result);
     }
 
-    pub fn parse_grouped_partition_key<'s>(
+    pub fn parse_grouped_by_partition_key<'s>(
         src: &'s [u8],
         inject_time_stamp: &JsonTimeStamp,
     ) -> Result<Vec<(String, Vec<Arc<DbRow>>)>, DbEntityParseFail> {
