@@ -5,9 +5,9 @@ use my_no_sql_tcp_shared::{sync_to_main::SyncToMainNodeHandler, MyNoSqlTcpSerial
 use my_tcp_sockets::TcpClient;
 use rust_extensions::{AppStates, StrOrString};
 
-use crate::{
-    subscribers::MyNoSqlDataReaderTcp, tcp_events::TcpEvents, MyNoSqlTcpConnectionSettings,
-};
+use crate::{MyNoSqlDataReader, MyNoSqlTcpConnectionSettings};
+
+use super::tcp_events::TcpEvents;
 
 pub struct TcpConnectionSettings {
     settings: Arc<dyn MyNoSqlTcpConnectionSettings + Sync + Send + 'static>,
@@ -53,14 +53,17 @@ impl MyNoSqlTcpConnection {
         TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
     >(
         &self,
-    ) -> Arc<MyNoSqlDataReaderTcp<TMyNoSqlEntity>> {
+    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
+        let subscriber = MyNoSqlDataReader::new(self.tcp_events.clone(), self.app_states.clone());
+
+        let subscriber = Arc::new(subscriber);
+
         self.tcp_events
             .subscribers
-            .create_subscriber(
-                self.app_states.clone(),
-                self.tcp_events.sync_handler.clone(),
-            )
-            .await
+            .add(TMyNoSqlEntity::TABLE_NAME, subscriber.clone())
+            .await;
+
+        subscriber
     }
 
     pub async fn start(&self) {

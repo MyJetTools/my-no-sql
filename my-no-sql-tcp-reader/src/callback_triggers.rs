@@ -152,7 +152,7 @@ mod tests {
     use serde_derive::{Deserialize, Serialize};
     use tokio::sync::Mutex;
 
-    use crate::subscribers::MyNoSqlDataReaderCallBacks;
+    use crate::MyNoSqlDataReaderCallBacks;
 
     struct TestCallbacksInner {
         inserted_or_replaced_entities: BTreeMap<String, Vec<Arc<TestRow>>>,

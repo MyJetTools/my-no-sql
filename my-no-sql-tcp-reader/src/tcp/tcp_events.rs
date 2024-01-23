@@ -5,7 +5,7 @@ use my_no_sql_tcp_shared::{
 };
 use my_tcp_sockets::{tcp_connection::TcpSocketConnection, SocketEventCallback};
 
-use crate::subscribers::Subscribers;
+use crate::{my_no_sql_connector::MyNoSqlConnector, subscribers::Subscribers};
 
 pub type TcpConnection = TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>;
 pub struct TcpEvents {
@@ -96,7 +96,15 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
             }
             MyNoSqlTcpContract::DeleteRows { table_name, rows } => {
                 if let Some(update_event) = self.subscribers.get(table_name.as_str()).await {
-                    update_event.as_ref().delete_rows(rows).await;
+                    let mut items = Vec::with_capacity(rows.len());
+
+                    for row in rows {
+                        items.push(crate::subscribers::DeleteRowEvent {
+                            partition_key: row.partition_key,
+                            row_key: row.row_key,
+                        })
+                    }
+                    update_event.as_ref().delete_rows(items).await;
                 }
             }
             MyNoSqlTcpContract::Error { message } => {
@@ -138,5 +146,11 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                 expiration_time: _,
             } => {}
         }
+    }
+}
+
+impl MyNoSqlConnector for TcpEvents {
+    fn get_sync_handler(&self) -> Option<&SyncToMainNodeHandler> {
+        Some(self.sync_handler.as_ref())
     }
 }
