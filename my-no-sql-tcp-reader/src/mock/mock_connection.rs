@@ -4,7 +4,10 @@ use my_json::json_writer::{JsonArrayWriter, RawJsonObject};
 use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use rust_extensions::AppStates;
 
-use crate::{data_reader_update::DeleteRowEvent, subscribers::Subscribers, MyNoSqlDataReader};
+use crate::{
+    subscribers::{DeleteRowEvent, Subscribers},
+    MyNoSqlDataReader,
+};
 
 use super::MockConnectionInner;
 
@@ -28,9 +31,13 @@ impl MyNoSqlMockConnection {
     >(
         &self,
     ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
+        let result = MyNoSqlDataReader::new(self.inner.clone(), self.app_states.clone());
+        let result = Arc::new(result);
         self.subscribers
-            .create_subscriber(self.app_states.clone(), self.inner.clone())
-            .await
+            .add(TMyNoSqlEntity::TABLE_NAME, result.clone())
+            .await;
+
+        result
     }
 
     pub async fn init_table<
@@ -84,16 +91,15 @@ impl MyNoSqlMockConnection {
         }
     }
 
-    pub async fn delete_rows(&self, table_name: &str, entities: Vec<DeleteRowEvent>) {
-        if entities.len() == 0 {
+    pub async fn delete_rows(&self, table_name: &str, records_to_delete: Vec<DeleteRowEvent>) {
+        if records_to_delete.len() == 0 {
             return;
         }
 
         let updater = self.subscribers.get(table_name).await;
 
         if let Some(updater) = updater {
-            let payload = serialize_entities(entities);
-            updater.update_rows(payload).await;
+            updater.delete_rows(records_to_delete).await;
         }
     }
 }
@@ -103,8 +109,6 @@ fn serialize_entities<
 >(
     entities: Vec<TMyNoSqlEntity>,
 ) -> Vec<u8> {
-    let mut result = Vec::new();
-
     let mut json_array = JsonArrayWriter::new();
 
     for entity in entities {
@@ -113,5 +117,5 @@ fn serialize_entities<
         json_array.write(payload);
     }
 
-    result
+    json_array.build()
 }
