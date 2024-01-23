@@ -61,9 +61,12 @@ pub fn generate(
 
         #fn_get_time_stamp
 
-        #fn_serialize_deserialize
 
        }
+
+         impl my_no_sql_sdk::abstractions::MyNoSqlEntitySerializer for #struct_name {
+           #fn_serialize_deserialize
+         }
 
        #impl_additional_traits
 

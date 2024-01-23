@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use my_json::json_reader::array_parser::JsonArrayIterator;
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
 use rust_extensions::{ApplicationStates, StrOrString};
 use serde::de::DeserializeOwned;
@@ -34,7 +34,7 @@ pub struct MyNoSqlDataReaderTcp<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 's
 
 impl<TMyNoSqlEntity> MyNoSqlDataReaderTcp<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
 {
     pub async fn new(
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
@@ -178,7 +178,7 @@ where
 }
 
 #[async_trait]
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send> UpdateEvent
+impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> UpdateEvent
     for MyNoSqlDataReaderTcp<TMyNoSqlEntity>
 {
     async fn init_table(&self, data: Vec<u8>) {
@@ -211,7 +211,8 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send> UpdateEvent
 #[async_trait::async_trait]
 impl<TMyNoSqlEntity> MyNoSqlDataReader<TMyNoSqlEntity> for MyNoSqlDataReaderTcp<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
+    TMyNoSqlEntity:
+        MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + DeserializeOwned + 'static,
 {
     async fn get_table_snapshot_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         self.get_table_snapshot_as_vec().await

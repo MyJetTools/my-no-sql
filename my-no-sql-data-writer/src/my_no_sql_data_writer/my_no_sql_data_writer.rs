@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 use flurl::FlUrl;
-use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity};
+use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity, MyNoSqlEntitySerializer};
 
 use serde::{Deserialize, Serialize};
 
@@ -45,7 +45,7 @@ pub struct MyNoSqlDataWriter<TEntity: MyNoSqlEntity + Sync + Send> {
     phantom: PhantomData<TEntity>,
 }
 
-impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriter<TEntity> {
+impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlDataWriter<TEntity> {
     pub fn new(
         settings: Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
         auto_create_table_params: Option<CreateTableParams>,

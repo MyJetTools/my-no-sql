@@ -1,4 +1,5 @@
 use my_no_sql_macros::*;
+use my_no_sql_sdk::abstractions::MyNoSqlEntitySerializer;
 use serde::*;
 
 #[enum_of_my_no_sql_entity(table_name:"Test", generate_unwraps)]
@@ -30,8 +31,6 @@ fn test_serialize_deserialize_case_1() {
     };
     let entity = MyNoSqlEnumEntityTest::Case1(src_model.clone());
 
-    use my_no_sql_sdk::abstractions::MyNoSqlEntity;
-
     let vec = entity.serialize_entity();
 
     let dest = MyNoSqlEnumEntityTest::deserialize_entity(&vec);
@@ -51,8 +50,6 @@ fn test_serialize_deserialize_case_2() {
         field4: 1234,
     };
     let entity = MyNoSqlEnumEntityTest::Case2(src_model.clone());
-
-    use my_no_sql_sdk::abstractions::MyNoSqlEntity;
 
     let vec = entity.serialize_entity();
 

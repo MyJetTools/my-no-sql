@@ -28,8 +28,13 @@ pub fn generate_base_impl(
 
             #fn_get_time_stamp
 
+
+        }
+
+        impl my_no_sql_sdk::abstractions::MyNoSqlEntitySerializer for #struct_name {
             #fn_serialize_deserialize
         }
+
     };
 
     Ok(result)

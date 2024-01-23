@@ -72,7 +72,13 @@ pub fn generate(
             }
         }
 
+        
+
+       }
+
+       impl my_no_sql_sdk::abstractions::MyNoSqlEntitySerializer for #enum_name {
         fn serialize_entity(&self) -> Vec<u8> {
+            use my_no_sql_sdk::abstractions::MyNoSqlEntity;
             let (result, row_key) = match self{
                 #serialize_cases
             };
@@ -83,8 +89,8 @@ pub fn generate(
         fn deserialize_entity(src: &[u8]) -> Self {
             #deserialize_cases
         }
-
-       }
+    }
+       
 
        #into_s
 

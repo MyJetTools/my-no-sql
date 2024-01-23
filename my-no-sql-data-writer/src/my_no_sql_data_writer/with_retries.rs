@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, sync::Arc, time::Duration};
 
-use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity};
+use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity, MyNoSqlEntitySerializer};
 
 use crate::{DataWriterError, MyNoSqlWriterSettings, UpdateReadStatistics};
 
@@ -12,7 +12,9 @@ pub struct MyNoSqlDataWriterWithRetries<TEntity: MyNoSqlEntity + Sync + Send> {
     max_attempts: usize,
 }
 
-impl<TEntity: MyNoSqlEntity + Sync + Send> MyNoSqlDataWriterWithRetries<TEntity> {
+impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send>
+    MyNoSqlDataWriterWithRetries<TEntity>
+{
     pub fn new(
         settings: Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
         sync_period: DataSynchronizationPeriod,

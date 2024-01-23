@@ -6,7 +6,7 @@ use my_json::{
     json_writer::{JsonArrayWriter, RawJsonObject},
 };
 use my_logger::LogEventCtx;
-use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity};
+use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity, MyNoSqlEntitySerializer};
 
 use crate::{
     CreateTableParams, DataWriterError, MyNoSqlWriterSettings, OperationFailHttpContract,
@@ -61,7 +61,7 @@ pub async fn create_table(
     create_table_errors_handler(&mut response, "create_table", url.as_str()).await
 }
 
-pub async fn insert_entity<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn insert_entity<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     entity: &TEntity,
     sync_period: &DataSynchronizationPeriod,
@@ -85,7 +85,9 @@ pub async fn insert_entity<TEntity: MyNoSqlEntity + Sync + Send>(
     return Err(DataWriterError::Error(reason));
 }
 
-pub async fn insert_or_replace_entity<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn insert_or_replace_entity<
+    TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send,
+>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     entity: &TEntity,
     sync_period: &DataSynchronizationPeriod,
@@ -109,7 +111,9 @@ pub async fn insert_or_replace_entity<TEntity: MyNoSqlEntity + Sync + Send>(
     return Err(DataWriterError::Error(reason));
 }
 
-pub async fn bulk_insert_or_replace<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn bulk_insert_or_replace<
+    TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send,
+>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     entities: &[TEntity],
     sync_period: &DataSynchronizationPeriod,
@@ -137,7 +141,7 @@ pub async fn bulk_insert_or_replace<TEntity: MyNoSqlEntity + Sync + Send>(
     return Err(DataWriterError::Error(reason));
 }
 
-pub async fn get_entity<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn get_entity<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     partition_key: &str,
     row_key: &str,
@@ -171,7 +175,9 @@ pub async fn get_entity<TEntity: MyNoSqlEntity + Sync + Send>(
     return Ok(None);
 }
 
-pub async fn get_by_partition_key<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn get_by_partition_key<
+    TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send,
+>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     partition_key: &str,
     update_read_statistics: Option<&UpdateReadStatistics>,
@@ -203,7 +209,7 @@ pub async fn get_by_partition_key<TEntity: MyNoSqlEntity + Sync + Send>(
 }
 
 pub async fn get_enum_case_models_by_partition_key<
-    TEntity: MyNoSqlEntity + Sync + Send,
+    TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send,
     TResult: MyNoSqlEntity
         + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
         + From<TEntity>
@@ -232,7 +238,7 @@ pub async fn get_enum_case_models_by_partition_key<
 }
 
 pub async fn get_enum_case_model<
-    TEntity: MyNoSqlEntity + Sync + Send,
+    TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send,
     TResult: MyNoSqlEntity
         + From<TEntity>
         + my_no_sql_abstractions::GetMyNoSqlEntity
@@ -257,7 +263,7 @@ pub async fn get_enum_case_model<
     }
 }
 
-pub async fn get_by_row_key<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn get_by_row_key<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     row_key: &str,
 ) -> Result<Option<Vec<TEntity>>, DataWriterError> {
@@ -285,7 +291,7 @@ pub async fn get_by_row_key<TEntity: MyNoSqlEntity + Sync + Send>(
 }
 
 pub async fn delete_enum_case<
-    TEntity: MyNoSqlEntity + Sync + Send,
+    TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send,
     TResult: MyNoSqlEntity
         + From<TEntity>
         + my_no_sql_abstractions::GetMyNoSqlEntity
@@ -305,7 +311,7 @@ pub async fn delete_enum_case<
 }
 
 pub async fn delete_enum_case_with_row_key<
-    TEntity: MyNoSqlEntity + Sync + Send,
+    TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send,
     TResult: MyNoSqlEntity
         + From<TEntity>
         + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
@@ -324,7 +330,7 @@ pub async fn delete_enum_case_with_row_key<
     }
 }
 
-pub async fn delete_row<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn delete_row<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     partition_key: &str,
     row_key: &str,
@@ -374,7 +380,7 @@ pub async fn delete_partitions(
     return Ok(());
 }
 
-pub async fn get_all<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn get_all<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
 ) -> Result<Option<Vec<TEntity>>, DataWriterError> {
     let flurl = get_fl_url(settings).await;
@@ -398,7 +404,9 @@ pub async fn get_all<TEntity: MyNoSqlEntity + Sync + Send>(
     return Ok(None);
 }
 
-pub async fn clean_table_and_bulk_insert<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn clean_table_and_bulk_insert<
+    TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send,
+>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     entities: &[TEntity],
     sync_period: &DataSynchronizationPeriod,
@@ -417,7 +425,9 @@ pub async fn clean_table_and_bulk_insert<TEntity: MyNoSqlEntity + Sync + Send>(
     return Ok(());
 }
 
-pub async fn clean_partition_and_bulk_insert<TEntity: MyNoSqlEntity + Sync + Send>(
+pub async fn clean_partition_and_bulk_insert<
+    TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send,
+>(
     settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     partition_key: &str,
     entities: &[TEntity],
@@ -447,7 +457,9 @@ async fn get_fl_url(settings: &Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'st
     FlUrl::new(url)
 }
 
-fn serialize_entities_to_body<TEntity: MyNoSqlEntity>(entities: &[TEntity]) -> Option<Vec<u8>> {
+fn serialize_entities_to_body<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
+    entities: &[TEntity],
+) -> Option<Vec<u8>> {
     if entities.len() == 0 {
         return Some(vec![b'[', b']']);
     }
@@ -511,7 +523,7 @@ async fn deserialize_error(
     Ok(result)
 }
 
-fn deserialize_entities<TEntity: MyNoSqlEntity>(
+fn deserialize_entities<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
     src: &[u8],
 ) -> Result<Vec<TEntity>, DataWriterError> {
     let mut result = Vec::new();
@@ -545,7 +557,7 @@ async fn create_table_errors_handler(
 
 #[cfg(test)]
 mod tests {
-    use my_no_sql_abstractions::MyNoSqlEntity;
+    use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
     use serde::Serialize;
     use serde_derive::Deserialize;
 
@@ -570,7 +582,9 @@ mod tests {
         fn get_time_stamp(&self) -> i64 {
             0
         }
+    }
 
+    impl MyNoSqlEntitySerializer for TestEntity {
         fn serialize_entity(&self) -> Vec<u8> {
             my_no_sql_core::entity_serializer::serialize(self)
         }

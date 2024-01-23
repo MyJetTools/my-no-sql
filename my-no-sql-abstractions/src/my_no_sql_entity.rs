@@ -3,7 +3,9 @@ pub trait MyNoSqlEntity {
     fn get_partition_key(&self) -> &str;
     fn get_row_key(&self) -> &str;
     fn get_time_stamp(&self) -> i64;
+}
 
+pub trait MyNoSqlEntitySerializer {
     fn serialize_entity(&self) -> Vec<u8>;
     fn deserialize_entity(src: &[u8]) -> Self;
 }

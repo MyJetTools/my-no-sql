@@ -148,7 +148,7 @@ pub async fn trigger_brand_new_partition<
 mod tests {
     use std::{collections::BTreeMap, sync::Arc};
 
-    use my_no_sql_abstractions::MyNoSqlEntity;
+    use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
     use serde_derive::{Deserialize, Serialize};
     use tokio::sync::Mutex;
 
@@ -239,7 +239,9 @@ mod tests {
         fn get_time_stamp(&self) -> i64 {
             self.timestamp
         }
+    }
 
+    impl MyNoSqlEntitySerializer for TestRow {
         fn serialize_entity(&self) -> Vec<u8> {
             my_no_sql_core::entity_serializer::serialize(self)
         }
