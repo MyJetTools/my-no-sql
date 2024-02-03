@@ -24,7 +24,7 @@ impl<TMyNoSqlEntity> MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>
 where
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
 {
-    pub async fn new<
+    pub fn new<
         TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
     >(
         callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
