@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_json::json_reader::array_iterator::JsonArrayIterator;
 use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
+use my_no_sql_core::my_json::json_reader::array_iterator::JsonArrayIterator;
 use rust_extensions::{array_of_bytes_iterator::SliceIterator, ApplicationStates};
 
 use crate::{
