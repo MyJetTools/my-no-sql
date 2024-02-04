@@ -162,7 +162,7 @@ fn get_deserialize_cases(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenSt
     let mut result = Vec::new();
 
     result.push(quote::quote! {
-        let entity = my_no_sql_sdk::core::db_json_entity::DbJsonEntity::new(src).unwrap();
+        let entity = my_no_sql_sdk::core::db_json_entity::DbJsonEntity::from_slice(src).unwrap();
 
         let entity_partition_key = entity.get_partition_key(src);
         let entity_row_key = entity.get_row_key(src);

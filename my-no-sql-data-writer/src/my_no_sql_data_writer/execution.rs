@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use flurl::{FlUrl, FlUrlResponse};
 use my_json::{
-    json_reader::array_parser::JsonArrayIterator,
+    json_reader::array_iterator::JsonArrayIterator,
     json_writer::{JsonArrayWriter, RawJsonObject},
 };
 use my_logger::LogEventCtx;
 use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity, MyNoSqlEntitySerializer};
+use rust_extensions::array_of_bytes_iterator::SliceIterator;
 
 use crate::{
     CreateTableParams, DataWriterError, MyNoSqlWriterSettings, OperationFailHttpContract,
@@ -527,10 +528,13 @@ fn deserialize_entities<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
     src: &[u8],
 ) -> Result<Vec<TEntity>, DataWriterError> {
     let mut result = Vec::new();
-    for itm in JsonArrayIterator::new(src) {
-        let itm = itm.unwrap();
+    let slice_iterator = SliceIterator::new(src);
+    let mut json_array_iterator = JsonArrayIterator::new(slice_iterator);
 
-        result.push(TEntity::deserialize_entity(itm));
+    while let Some(item) = json_array_iterator.get_next() {
+        let itm = item.unwrap();
+
+        result.push(TEntity::deserialize_entity(itm.as_bytes().unwrap()));
     }
     Ok(result)
 }

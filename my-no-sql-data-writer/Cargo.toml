@@ -1,6 +1,6 @@
 [package]
 name = "my-no-sql-data-writer"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -15,7 +15,7 @@ rust-extensions = { tag = "0.1.4", git = "https://github.com/MyJetTools/rust-ext
 ] }
 flurl = { tag = "0.5.0", git = "https://github.com/MyJetTools/fl-url" }
 
-my-json = { tag = "0.2.2", git = "https://github.com/MyJetTools/my-json.git" }
+my-json = { tag = "0.2.3", git = "https://github.com/MyJetTools/my-json.git" }
 
 tokio = { version = "*", features = ["full"] }
 tokio-util = "*"

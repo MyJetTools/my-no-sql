@@ -154,7 +154,10 @@ fn are_expires_the_same(
 #[cfg(test)]
 mod tests {
 
-    use rust_extensions::date_time::DateTimeAsMicroseconds;
+    use my_json::json_reader::JsonFirstLineReader;
+    use rust_extensions::{
+        array_of_bytes_iterator::SliceIterator, date_time::DateTimeAsMicroseconds,
+    };
 
     use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 
@@ -165,11 +168,14 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
 
         let time_stamp = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -182,11 +188,12 @@ mod tests {
     fn test_that_index_does_not_appear_since_we_do_not_have_expiration() {
         let test_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test",
+            "RowKey": "test"
         }"#;
 
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
         let time_stamp = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -202,8 +209,10 @@ mod tests {
             "RowKey": "test",
             "Expires": "2019-01-01T00:00:00"
         }"#;
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+
         let time_stamp = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -221,9 +230,11 @@ mod tests {
             "RowKey": "test"
         }"#;
 
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+
         let time_stamp = JsonTimeStamp::now();
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -249,11 +260,12 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
 
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
         let time_stamp = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -287,11 +299,13 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
 
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+
         let now = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &now).unwrap();
 
         db_rows.insert(Arc::new(db_row));
 
@@ -316,12 +330,14 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
 
         let now = JsonTimeStamp::now();
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &now).unwrap();
 
         db_rows.insert(Arc::new(db_row));
 
@@ -342,11 +358,13 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
         let now = JsonTimeStamp::now();
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &now).unwrap();
 
         db_rows.insert(Arc::new(db_row));
 
@@ -365,14 +383,17 @@ mod tests {
 
         let mut now = DateTimeAsMicroseconds::now();
 
-        let json = r#"{
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = r#"{
             "PartitionKey": "test",
-            "RowKey": "test1",
-        }"#;
+            "RowKey": "test1"
+        }"#
+        .into();
 
-        let db_row =
-            DbJsonEntity::parse_into_db_row(json.as_bytes(), &JsonTimeStamp::from_date_time(now))
-                .unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(
+            json_first_line_reader,
+            &JsonTimeStamp::from_date_time(now),
+        )
+        .unwrap();
 
         db_rows.insert(Arc::new(db_row));
 
@@ -380,13 +401,15 @@ mod tests {
 
         now.add_seconds(1);
 
-        let raw_json = r#"{
+        let test_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test2",
+            "RowKey": "test2"
         }"#;
 
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+
         let db_row = DbJsonEntity::parse_into_db_row(
-            raw_json.as_bytes(),
+            json_first_line_reader,
             &JsonTimeStamp::from_date_time(now),
         )
         .unwrap();
@@ -399,11 +422,13 @@ mod tests {
 
         let json_db_row = r#"{
             "PartitionKey": "test",
-            "RowKey": "test3",
+            "RowKey": "test3"
         }"#;
 
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = json_db_row.into();
+
         let db_row = DbJsonEntity::parse_into_db_row(
-            json_db_row.as_bytes(),
+            json_first_line_reader,
             &JsonTimeStamp::from_date_time(now),
         )
         .unwrap();
@@ -414,13 +439,15 @@ mod tests {
 
         now.add_seconds(1);
 
-        let raw_json = r#"{
+        let test_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test4",
+            "RowKey": "test4"
         }"#;
 
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+
         let db_row = DbJsonEntity::parse_into_db_row(
-            raw_json.as_bytes(),
+            json_first_line_reader,
             &JsonTimeStamp::from_date_time(now),
         )
         .unwrap();

@@ -104,6 +104,9 @@ impl DbTable {
 mod tests {
     use std::sync::Arc;
 
+    use my_json::json_reader::JsonFirstLineReader;
+    use rust_extensions::array_of_bytes_iterator::SliceIterator;
+
     use crate::{
         db::DbTable,
         db_json_entity::{DbJsonEntity, JsonTimeStamp},
@@ -122,10 +125,12 @@ mod tests {
 
         let test_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test",
+            "RowKey": "test"
         }"#;
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &now).unwrap();
 
         let db_row = Arc::new(db_row);
 
@@ -146,10 +151,11 @@ mod tests {
 
         let test_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test",
+            "RowKey": "test"
         }"#;
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+        let db_row = DbJsonEntity::parse_into_db_row(json_first_line_reader, &now).unwrap();
 
         let db_row = Arc::new(db_row);
 
@@ -161,7 +167,8 @@ mod tests {
             "AAA": "111"
         }"#;
 
-        let db_row2 = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> = test_json.into();
+        let db_row2 = DbJsonEntity::parse_into_db_row(json_first_line_reader, &now).unwrap();
 
         let db_row2 = Arc::new(db_row2);
 
