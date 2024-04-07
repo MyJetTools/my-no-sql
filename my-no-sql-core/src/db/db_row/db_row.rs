@@ -116,60 +116,79 @@ impl DbRow {
     #[cfg(feature = "master-node")]
     pub fn write_json(&self, out: &mut String) {
         let expires_value = self.get_expires();
+        unsafe {
+            if expires_value.is_none() {
+                if let Some(expires) = &self.expires {
+                    if let Some(before_separator) =
+                        find_json_separator_before(&self.raw, expires.key.start - 1)
+                    {
+                        out.push_str(std::str::from_utf8_unchecked(
+                            self.raw[..before_separator].as_ref(),
+                        ));
+                        out.push_str(std::str::from_utf8_unchecked(
+                            self.raw[expires.value.end..].as_ref(),
+                        ));
 
-        if expires_value.is_none() {
-            if let Some(expires) = &self.expires {
-                if let Some(before_separator) =
-                    find_json_separator_before(&self.raw, expires.key.start - 1)
-                {
-                    out.push_str(
-                        std::str::from_utf8(self.raw[..before_separator].as_ref()).unwrap(),
-                    );
-                    out.push_str(
-                        std::str::from_utf8(self.raw[expires.value.end..].as_ref()).unwrap(),
-                    );
-                    return;
+                        return;
+                    }
+
+                    if let Some(after_separator) =
+                        find_json_separator_after(&self.raw, expires.value.end)
+                    {
+                        out.push_str(std::str::from_utf8_unchecked(
+                            self.raw[..expires.key.start].as_ref(),
+                        ));
+                        out.push_str(std::str::from_utf8_unchecked(
+                            self.raw[after_separator..].as_ref(),
+                        ));
+
+                        return;
+                    }
+
+                    out.push_str(std::str::from_utf8_unchecked(
+                        self.raw[..expires.key.start].as_ref(),
+                    ));
+                    out.push_str(std::str::from_utf8_unchecked(
+                        self.raw[expires.value.end..].as_ref(),
+                    ));
+                } else {
+                    out.push_str(std::str::from_utf8_unchecked(self.raw.as_ref()));
                 }
 
-                if let Some(after_separator) =
-                    find_json_separator_after(&self.raw, expires.value.end)
-                {
-                    out.push_str(
-                        std::str::from_utf8(self.raw[..expires.key.start].as_ref()).unwrap(),
-                    );
-                    out.push_str(
-                        std::str::from_utf8(self.raw[after_separator..].as_ref()).unwrap(),
-                    );
-                    return;
-                }
-
-                out.push_str(std::str::from_utf8(self.raw[..expires.key.start].as_ref()).unwrap());
-                out.push_str(std::str::from_utf8(self.raw[expires.value.end..].as_ref()).unwrap());
-            } else {
-                out.push_str(std::str::from_utf8(self.raw.as_ref()).unwrap());
+                return;
             }
-
-            return;
         }
 
         let expires_value = expires_value.unwrap();
 
-        if let Some(expires) = &self.expires {
-            out.push_str(std::str::from_utf8(self.raw[..expires.key.start].as_ref()).unwrap());
-            inject_expires(out, expires_value);
-            out.push_str(std::str::from_utf8(self.raw[expires.value.end..].as_ref()).unwrap());
-        } else {
-            let end_of_json = crate::db_json_entity::get_the_end_of_the_json(&self.raw);
-            out.push_str(std::str::from_utf8(self.raw[..end_of_json].as_ref()).unwrap());
-            out.push(',');
-            inject_expires(out, expires_value);
-            out.push_str(std::str::from_utf8(self.raw[end_of_json..].as_ref()).unwrap());
+        unsafe {
+            if let Some(expires) = &self.expires {
+                out.push_str(std::str::from_utf8_unchecked(
+                    self.raw[..expires.key.start].as_ref(),
+                ));
+                inject_expires(out, expires_value);
+                out.push_str(std::str::from_utf8_unchecked(
+                    self.raw[expires.value.end..].as_ref(),
+                ));
+            } else {
+                let end_of_json = crate::db_json_entity::get_the_end_of_the_json(&self.raw);
+                out.push_str(std::str::from_utf8_unchecked(
+                    self.raw[..end_of_json].as_ref(),
+                ));
+                out.push(',');
+                inject_expires(out, expires_value);
+                out.push_str(std::str::from_utf8_unchecked(
+                    self.raw[end_of_json..].as_ref(),
+                ));
+            }
         }
     }
 
     #[cfg(not(feature = "master-node"))]
     pub fn write_json(&self, out: &mut String) {
-        out.push_str(std::str::from_utf8(self.raw.as_slice()).unwrap());
+        unsafe {
+            out.push_str(std::str::from_utf8_unchecked(self.raw.as_slice()));
+        }
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
@@ -210,9 +229,11 @@ fn inject_expires(out: &mut String, expires_value: DateTimeAsMicroseconds) {
     out.push('"');
     out.push_str(crate::db_json_entity::consts::EXPIRES);
     out.push_str("\":\"");
-    out.push_str(
-        std::str::from_utf8(expires_value.to_rfc3339().as_bytes()[..19].as_ref()).unwrap(),
-    );
+    unsafe {
+        out.push_str(std::str::from_utf8_unchecked(
+            expires_value.to_rfc3339().as_bytes()[..19].as_ref(),
+        ));
+    }
     out.push('"');
 }
 #[cfg(feature = "master-node")]

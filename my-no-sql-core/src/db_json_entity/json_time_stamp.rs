@@ -52,7 +52,9 @@ impl JsonTimeStamp {
     }
 
     pub fn as_str(&self) -> &str {
-        return std::str::from_utf8(self.as_slice()).unwrap();
+        unsafe {
+            return std::str::from_utf8_unchecked(self.as_slice());
+        }
     }
 
     pub fn as_slice(&self) -> &[u8] {
