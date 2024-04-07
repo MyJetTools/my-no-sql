@@ -473,7 +473,7 @@ fn serialize_entities_to_body<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
         json_array_writer.write(payload);
     }
 
-    Some(json_array_writer.build().into_bytes())
+    Some(json_array_writer.build())
 }
 
 async fn check_error(response: &mut FlUrlResponse) -> Result<(), DataWriterError> {

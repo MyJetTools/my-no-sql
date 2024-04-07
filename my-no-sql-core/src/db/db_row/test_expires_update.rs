@@ -32,25 +32,23 @@ mod test {
 
         db_row.update_expires(new_expires.into());
 
-        let mut result_json = String::new();
+        let mut result_json = Vec::new();
 
         db_row.write_json(&mut result_json);
 
-        println!("{}", result_json);
-
-        let result_json_first_line_reader: JsonFirstLineReader<SliceIterator<'_>> =
-            result_json.as_bytes().into();
+        let result_json_first_line_reader: JsonFirstLineReader<SliceIterator> =
+            result_json.as_slice().into();
 
         let result_entity = DbJsonEntity::new(result_json_first_line_reader).unwrap();
 
         assert_eq!(
-            result_entity.get_partition_key(result_json.as_bytes()),
+            result_entity.get_partition_key(result_json.as_slice()),
             "TestPk"
         );
-        assert_eq!(result_entity.get_row_key(result_json.as_bytes()), "TestRk");
+        assert_eq!(result_entity.get_row_key(result_json.as_slice()), "TestRk");
 
         assert_eq!(
-            result_entity.get_expires(result_json.as_bytes()).unwrap(),
+            result_entity.get_expires(result_json.as_slice()).unwrap(),
             &new_expires.to_rfc3339()[..19]
         );
     }
@@ -72,25 +70,23 @@ mod test {
 
         db_row.update_expires(new_expires.into());
 
-        let mut result_json = String::new();
+        let mut result_json = Vec::new();
 
         db_row.write_json(&mut result_json);
 
-        println!("{}", result_json);
-
         let json_first_line_reader: JsonFirstLineReader<SliceIterator> =
-            result_json.as_bytes().into();
+            result_json.as_slice().into();
 
         let result_entity = DbJsonEntity::new(json_first_line_reader).unwrap();
 
         assert_eq!(
-            result_entity.get_partition_key(result_json.as_bytes()),
+            result_entity.get_partition_key(result_json.as_slice()),
             "Pk"
         );
-        assert_eq!(result_entity.get_row_key(result_json.as_bytes()), "Rk");
+        assert_eq!(result_entity.get_row_key(result_json.as_slice()), "Rk");
 
         assert_eq!(
-            result_entity.get_expires(result_json.as_bytes()).unwrap(),
+            result_entity.get_expires(result_json.as_slice()).unwrap(),
             &new_expires.to_rfc3339()[..19]
         );
     }
@@ -109,23 +105,21 @@ mod test {
 
         db_row.update_expires(None);
 
-        let mut result_json = String::new();
+        let mut result_json = Vec::new();
 
         db_row.write_json(&mut result_json);
 
-        println!("Result: {}", result_json.as_str());
-
         let json_first_line_reader: JsonFirstLineReader<SliceIterator> =
-            result_json.as_bytes().into();
+            result_json.as_slice().into();
         let result_entity = DbJsonEntity::new(json_first_line_reader).unwrap();
 
         assert_eq!(
-            result_entity.get_partition_key(result_json.as_bytes()),
+            result_entity.get_partition_key(result_json.as_slice()),
             "Pk"
         );
-        assert_eq!(result_entity.get_row_key(result_json.as_bytes()), "Rk");
+        assert_eq!(result_entity.get_row_key(result_json.as_slice()), "Rk");
 
-        assert!(result_entity.get_expires(result_json.as_bytes()).is_none());
+        assert!(result_entity.get_expires(result_json.as_slice()).is_none());
     }
 
     #[test]
@@ -140,24 +134,22 @@ mod test {
 
         db_row.update_expires(None);
 
-        let mut result_json = String::new();
+        let mut result_json = Vec::new();
 
         db_row.write_json(&mut result_json);
 
-        println!("Result: {}", result_json.as_str());
-
         let json_first_line_reader: JsonFirstLineReader<SliceIterator> =
-            result_json.as_bytes().into();
+            result_json.as_slice().into();
 
         let result_entity = DbJsonEntity::new(json_first_line_reader).unwrap();
 
         assert_eq!(
-            result_entity.get_partition_key(result_json.as_bytes()),
+            result_entity.get_partition_key(result_json.as_slice()),
             "Pk"
         );
-        assert_eq!(result_entity.get_row_key(result_json.as_bytes()), "Rk");
+        assert_eq!(result_entity.get_row_key(result_json.as_slice()), "Rk");
 
-        assert!(result_entity.get_expires(result_json.as_bytes()).is_none());
+        assert!(result_entity.get_expires(result_json.as_slice()).is_none());
     }
 
     #[test]
@@ -172,22 +164,22 @@ mod test {
 
         db_row.update_expires(None);
 
-        let mut result_json = String::new();
+        let mut result_json = Vec::new();
 
         db_row.write_json(&mut result_json);
 
         let json_first_line_reader: JsonFirstLineReader<SliceIterator> =
-            result_json.as_bytes().into();
+            result_json.as_slice().into();
 
         let result_entity = DbJsonEntity::new(json_first_line_reader).unwrap();
 
         assert_eq!(
-            result_entity.get_partition_key(result_json.as_bytes()),
+            result_entity.get_partition_key(result_json.as_slice()),
             "Pk"
         );
-        assert_eq!(result_entity.get_row_key(result_json.as_bytes()), "Rk");
+        assert_eq!(result_entity.get_row_key(result_json.as_slice()), "Rk");
 
-        assert!(result_entity.get_expires(result_json.as_bytes()).is_none());
+        assert!(result_entity.get_expires(result_json.as_slice()).is_none());
     }
 
     #[test]
@@ -205,26 +197,20 @@ mod test {
 
         db_row.update_expires(None);
 
-        let mut result_json = String::new();
+        let mut result_json = Vec::new();
 
         db_row.write_json(&mut result_json);
 
-        println!(
-            "Result: {}. Len: {}",
-            result_json.as_str(),
-            result_json.len()
-        );
-
         let json_first_line_reader: JsonFirstLineReader<SliceIterator> =
-            result_json.as_bytes().into();
+            result_json.as_slice().into();
         let result_entity = DbJsonEntity::new(json_first_line_reader).unwrap();
 
         assert_eq!(
-            result_entity.get_partition_key(result_json.as_bytes()),
+            result_entity.get_partition_key(result_json.as_slice()),
             "Pk"
         );
-        assert_eq!(result_entity.get_row_key(result_json.as_bytes()), "Rk");
+        assert_eq!(result_entity.get_row_key(result_json.as_slice()), "Rk");
 
-        assert!(result_entity.get_expires(result_json.as_bytes()).is_none());
+        assert!(result_entity.get_expires(result_json.as_slice()).is_none());
     }
 }

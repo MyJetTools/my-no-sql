@@ -114,87 +114,62 @@ impl DbRow {
         }
     }
     #[cfg(feature = "master-node")]
-    pub fn write_json(&self, out: &mut String) {
+    pub fn write_json(&self, out: &mut Vec<u8>) {
         let expires_value = self.get_expires();
-        unsafe {
-            if expires_value.is_none() {
-                if let Some(expires) = &self.expires {
-                    if let Some(before_separator) =
-                        find_json_separator_before(&self.raw, expires.key.start - 1)
-                    {
-                        out.push_str(std::str::from_utf8_unchecked(
-                            self.raw[..before_separator].as_ref(),
-                        ));
-                        out.push_str(std::str::from_utf8_unchecked(
-                            self.raw[expires.value.end..].as_ref(),
-                        ));
 
-                        return;
-                    }
+        if expires_value.is_none() {
+            if let Some(expires) = &self.expires {
+                if let Some(before_separator) =
+                    find_json_separator_before(&self.raw, expires.key.start - 1)
+                {
+                    out.extend_from_slice(self.raw[..before_separator].as_ref());
+                    out.extend_from_slice(self.raw[expires.value.end..].as_ref());
 
-                    if let Some(after_separator) =
-                        find_json_separator_after(&self.raw, expires.value.end)
-                    {
-                        out.push_str(std::str::from_utf8_unchecked(
-                            self.raw[..expires.key.start].as_ref(),
-                        ));
-                        out.push_str(std::str::from_utf8_unchecked(
-                            self.raw[after_separator..].as_ref(),
-                        ));
-
-                        return;
-                    }
-
-                    out.push_str(std::str::from_utf8_unchecked(
-                        self.raw[..expires.key.start].as_ref(),
-                    ));
-                    out.push_str(std::str::from_utf8_unchecked(
-                        self.raw[expires.value.end..].as_ref(),
-                    ));
-                } else {
-                    out.push_str(std::str::from_utf8_unchecked(self.raw.as_ref()));
+                    return;
                 }
 
-                return;
+                if let Some(after_separator) =
+                    find_json_separator_after(&self.raw, expires.value.end)
+                {
+                    out.extend_from_slice(self.raw[..expires.key.start].as_ref());
+                    out.extend_from_slice(self.raw[after_separator..].as_ref());
+
+                    return;
+                }
+
+                out.extend_from_slice(self.raw[..expires.key.start].as_ref());
+                out.extend_from_slice(self.raw[expires.value.end..].as_ref());
+            } else {
+                out.extend_from_slice(self.raw.as_ref());
             }
+
+            return;
         }
 
         let expires_value = expires_value.unwrap();
 
-        unsafe {
-            if let Some(expires) = &self.expires {
-                out.push_str(std::str::from_utf8_unchecked(
-                    self.raw[..expires.key.start].as_ref(),
-                ));
-                inject_expires(out, expires_value);
-                out.push_str(std::str::from_utf8_unchecked(
-                    self.raw[expires.value.end..].as_ref(),
-                ));
-            } else {
-                let end_of_json = crate::db_json_entity::get_the_end_of_the_json(&self.raw);
-                out.push_str(std::str::from_utf8_unchecked(
-                    self.raw[..end_of_json].as_ref(),
-                ));
-                out.push(',');
-                inject_expires(out, expires_value);
-                out.push_str(std::str::from_utf8_unchecked(
-                    self.raw[end_of_json..].as_ref(),
-                ));
-            }
+        if let Some(expires) = &self.expires {
+            out.extend_from_slice(self.raw[..expires.key.start].as_ref());
+            inject_expires(out, expires_value);
+            out.extend_from_slice(self.raw[expires.value.end..].as_ref());
+        } else {
+            let end_of_json = crate::db_json_entity::get_the_end_of_the_json(&self.raw);
+            out.extend_from_slice(self.raw[..end_of_json].as_ref());
+            out.push(b',');
+            inject_expires(out, expires_value);
+            out.extend_from_slice(self.raw[end_of_json..].as_ref());
         }
     }
 
     #[cfg(not(feature = "master-node"))]
-    pub fn write_json(&self, out: &mut String) {
-        unsafe {
-            out.push_str(std::str::from_utf8_unchecked(self.raw.as_slice()));
-        }
+    pub fn write_json(&self, out: &mut Vec<u8>) {
+        out.extend_from_slice(self.raw.as_slice());
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
-        let mut result = String::new();
+        let mut result = Vec::new();
         self.write_json(&mut result);
-        result.into_bytes()
+        result
     }
 }
 
@@ -225,16 +200,14 @@ impl RowKeyParameter for Arc<DbRow> {
 }
 
 #[cfg(feature = "master-node")]
-fn inject_expires(out: &mut String, expires_value: DateTimeAsMicroseconds) {
-    out.push('"');
-    out.push_str(crate::db_json_entity::consts::EXPIRES);
-    out.push_str("\":\"");
-    unsafe {
-        out.push_str(std::str::from_utf8_unchecked(
-            expires_value.to_rfc3339().as_bytes()[..19].as_ref(),
-        ));
-    }
-    out.push('"');
+fn inject_expires(out: &mut Vec<u8>, expires_value: DateTimeAsMicroseconds) {
+    out.push(b'"');
+    out.extend_from_slice(crate::db_json_entity::consts::EXPIRES.as_bytes());
+    out.extend_from_slice(b"\":\"");
+
+    out.extend_from_slice(expires_value.to_rfc3339().as_bytes()[..19].as_ref());
+
+    out.push(b'"');
 }
 #[cfg(feature = "master-node")]
 fn find_json_separator_before(src: &[u8], pos: usize) -> Option<usize> {
@@ -278,7 +251,7 @@ fn find_json_separator_after(src: &[u8], pos: usize) -> Option<usize> {
 }
 
 impl JsonObject for &'_ DbRow {
-    fn write_into(&self, dest: &mut String) {
+    fn write_into(&self, dest: &mut Vec<u8>) {
         self.write_json(dest)
     }
 }
