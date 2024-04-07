@@ -117,5 +117,5 @@ fn serialize_entities<
         json_array.write(payload);
     }
 
-    json_array.build()
+    json_array.build().into_bytes()
 }
