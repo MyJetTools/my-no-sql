@@ -1,4 +1,4 @@
-use my_json::json_reader::JsonFirstLine;
+use my_json::json_reader::JsonKeyValueRef;
 
 use crate::db_json_entity::{JsonKeyValuePosition, KeyValueContentPosition};
 
@@ -37,7 +37,7 @@ impl DbRowContentCompiler {
         }
     }
 
-    pub fn append(&mut self, line: &JsonFirstLine) -> JsonKeyValuePosition {
+    pub fn append(&mut self, line: JsonKeyValueRef) -> JsonKeyValuePosition {
         self.append_first_line();
         let mut key = KeyValueContentPosition {
             start: self.content.len(),
@@ -45,7 +45,7 @@ impl DbRowContentCompiler {
         };
 
         self.content
-            .extend_from_slice(line.get_raw_name().unwrap().as_bytes());
+            .extend_from_slice(line.name.as_raw_str().unwrap().as_bytes());
 
         key.end = self.content.len();
 
@@ -55,8 +55,7 @@ impl DbRowContentCompiler {
             start: self.content.len(),
             end: 0,
         };
-        self.content
-            .extend_from_slice(&line.data[line.value_start..line.value_end]);
+        self.content.extend_from_slice(line.value.as_bytes());
 
         value.end = self.content.len();
 

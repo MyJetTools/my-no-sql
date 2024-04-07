@@ -40,7 +40,7 @@ impl DbJsonEntity {
         while let Some(line) = json_first_line_reader.get_next() {
             let line = line?;
 
-            let name = line.get_name()?;
+            let name = line.name.as_unescaped_name(&json_first_line_reader)?;
             match name {
                 super::consts::PARTITION_KEY => {
                     partition_key = Some(JsonKeyValuePosition::new(&line));
@@ -50,7 +50,7 @@ impl DbJsonEntity {
                     row_key = Some(JsonKeyValuePosition::new(&line));
                 }
                 super::consts::EXPIRES => {
-                    expires_value = line.get_value()?.as_date_time();
+                    expires_value = line.value.as_date_time(&json_first_line_reader);
                     expires = Some(JsonKeyValuePosition::new(&line))
                 }
                 super::consts::TIME_STAMP => {
@@ -132,21 +132,23 @@ impl DbJsonEntity {
         while let Some(line) = json_first_line_reader.get_next() {
             let line = line?;
 
-            let name = line.get_name()?;
+            let line_ref = line.as_ref(&json_first_line_reader);
+
+            let name = line_ref.name.as_unescaped_name().unwrap();
             match name {
                 super::consts::PARTITION_KEY => {
-                    partition_key = Some(raw.append(&line));
+                    partition_key = Some(raw.append(line_ref));
                 }
 
                 super::consts::ROW_KEY => {
-                    row_key = Some(raw.append(&line));
+                    row_key = Some(raw.append(line_ref));
                     time_stamp = raw
                         .append_str_value(super::consts::TIME_STAMP, now.as_str())
                         .into();
                 }
                 super::consts::EXPIRES => {
-                    expires_value = line.get_value()?.as_date_time();
-                    expires = Some(raw.append(&line));
+                    expires_value = line.value.as_date_time(&json_first_line_reader);
+                    expires = Some(raw.append(line_ref));
                 }
                 super::consts::TIME_STAMP => {}
                 _ => {
@@ -155,7 +157,7 @@ impl DbJsonEntity {
                         super::consts::TIME_STAMP_LOWER_CASE,
                     ) {
                     } else {
-                        raw.append(&line);
+                        raw.append(line_ref);
                     }
                 }
             }
@@ -249,7 +251,7 @@ impl DbJsonEntity {
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
             let db_row = DbJsonEntity::parse_into_db_row(
-                json.unwrap_as_object().unwrap(),
+                json.unwrap_as_object(&json_array_iterator).unwrap(),
                 inject_time_stamp,
             )?;
             result.push(Arc::new(db_row));
@@ -266,7 +268,9 @@ impl DbJsonEntity {
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
-            let db_entity = DbJsonEntity::restore_into_db_row(json.unwrap_as_object().unwrap())?;
+            let db_entity = DbJsonEntity::restore_into_db_row(
+                json.unwrap_as_object(&json_array_iterator).unwrap(),
+            )?;
             result.push(Arc::new(db_entity));
         }
         return Ok(result);
@@ -285,7 +289,7 @@ impl DbJsonEntity {
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
             let db_row = DbJsonEntity::parse_into_db_row(
-                json.unwrap_as_object().unwrap(),
+                json.unwrap_as_object(&json_array_iterator).unwrap(),
                 inject_time_stamp,
             )?;
 
@@ -316,7 +320,9 @@ impl DbJsonEntity {
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
-            let db_row = DbJsonEntity::restore_into_db_row(json.unwrap_as_object().unwrap())?;
+            let db_row = DbJsonEntity::restore_into_db_row(
+                json.unwrap_as_object(&json_array_iterator).unwrap(),
+            )?;
 
             let partition_key = db_row.get_partition_key();
 
@@ -428,7 +434,7 @@ fn inject_time_stamp_key_value(
 
 pub fn get_the_end_of_the_json(data: &[u8]) -> usize {
     for i in (0..data.len()).rev() {
-        if data[i] == my_json::json_reader::consts::CLOSE_BRACKET {
+        if data[i] == my_json::consts::CLOSE_BRACKET {
             return i;
         }
     }

@@ -114,7 +114,7 @@ impl DbRow {
         }
     }
     #[cfg(feature = "master-node")]
-    pub fn write_json(&self, out: &mut Vec<u8>) {
+    pub fn write_json(&self, out: &mut String) {
         let expires_value = self.get_expires();
 
         if expires_value.is_none() {
@@ -122,23 +122,31 @@ impl DbRow {
                 if let Some(before_separator) =
                     find_json_separator_before(&self.raw, expires.key.start - 1)
                 {
-                    out.extend_from_slice(&self.raw[..before_separator]);
-                    out.extend_from_slice(&self.raw[expires.value.end..]);
+                    out.push_str(
+                        std::str::from_utf8(self.raw[..before_separator].as_ref()).unwrap(),
+                    );
+                    out.push_str(
+                        std::str::from_utf8(self.raw[expires.value.end..].as_ref()).unwrap(),
+                    );
                     return;
                 }
 
                 if let Some(after_separator) =
                     find_json_separator_after(&self.raw, expires.value.end)
                 {
-                    out.extend_from_slice(&self.raw[..expires.key.start]);
-                    out.extend_from_slice(&self.raw[after_separator..]);
+                    out.push_str(
+                        std::str::from_utf8(self.raw[..expires.key.start].as_ref()).unwrap(),
+                    );
+                    out.push_str(
+                        std::str::from_utf8(self.raw[after_separator..].as_ref()).unwrap(),
+                    );
                     return;
                 }
 
-                out.extend_from_slice(&self.raw[..expires.key.start]);
-                out.extend_from_slice(&self.raw[expires.value.end..]);
+                out.push_str(std::str::from_utf8(self.raw[..expires.key.start].as_ref()).unwrap());
+                out.push_str(std::str::from_utf8(self.raw[expires.value.end..].as_ref()).unwrap());
             } else {
-                out.extend_from_slice(&self.raw);
+                out.push_str(std::str::from_utf8(self.raw.as_ref()).unwrap());
             }
 
             return;
@@ -147,27 +155,27 @@ impl DbRow {
         let expires_value = expires_value.unwrap();
 
         if let Some(expires) = &self.expires {
-            out.extend_from_slice(&self.raw[..expires.key.start]);
+            out.push_str(std::str::from_utf8(self.raw[..expires.key.start].as_ref()).unwrap());
             inject_expires(out, expires_value);
-            out.extend_from_slice(&self.raw[expires.value.end..]);
+            out.push_str(std::str::from_utf8(self.raw[expires.value.end..].as_ref()).unwrap());
         } else {
             let end_of_json = crate::db_json_entity::get_the_end_of_the_json(&self.raw);
-            out.extend_from_slice(&self.raw[..end_of_json]);
-            out.push(b',');
+            out.push_str(std::str::from_utf8(self.raw[..end_of_json].as_ref()).unwrap());
+            out.push(',');
             inject_expires(out, expires_value);
-            out.extend_from_slice(&self.raw[end_of_json..]);
+            out.push_str(std::str::from_utf8(self.raw[end_of_json..].as_ref()).unwrap());
         }
     }
 
     #[cfg(not(feature = "master-node"))]
-    pub fn write_json(&self, out: &mut Vec<u8>) {
-        out.extend_from_slice(&self.raw);
+    pub fn write_json(&self, out: &mut String) {
+        out.push_str(std::str::from_utf8(self.raw.as_slice()).unwrap());
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
-        let mut result = Vec::new();
+        let mut result = String::new();
         self.write_json(&mut result);
-        result
+        result.into_bytes()
     }
 }
 
@@ -198,12 +206,14 @@ impl RowKeyParameter for Arc<DbRow> {
 }
 
 #[cfg(feature = "master-node")]
-fn inject_expires(out: &mut Vec<u8>, expires_value: DateTimeAsMicroseconds) {
-    out.push(b'"');
-    out.extend_from_slice(crate::db_json_entity::consts::EXPIRES.as_bytes());
-    out.extend_from_slice("\":\"".as_bytes());
-    out.extend_from_slice(&expires_value.to_rfc3339().as_bytes()[..19]);
-    out.push(b'"');
+fn inject_expires(out: &mut String, expires_value: DateTimeAsMicroseconds) {
+    out.push('"');
+    out.push_str(crate::db_json_entity::consts::EXPIRES);
+    out.push_str("\":\"");
+    out.push_str(
+        std::str::from_utf8(expires_value.to_rfc3339().as_bytes()[..19].as_ref()).unwrap(),
+    );
+    out.push('"');
 }
 #[cfg(feature = "master-node")]
 fn find_json_separator_before(src: &[u8], pos: usize) -> Option<usize> {
@@ -247,7 +257,7 @@ fn find_json_separator_after(src: &[u8], pos: usize) -> Option<usize> {
 }
 
 impl JsonObject for &'_ DbRow {
-    fn write_into(&self, dest: &mut Vec<u8>) {
+    fn write_into(&self, dest: &mut String) {
         self.write_json(dest)
     }
 }

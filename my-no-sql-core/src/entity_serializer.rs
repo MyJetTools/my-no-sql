@@ -61,14 +61,14 @@ pub fn inject_partition_key_and_row_key(
     let to_insert = if let Some(row_key) = row_key {
         format!(
             "\"PartitionKey\":\"{}\",\"RowKey\":\"{}\",",
-            my_json::EscapedJsonString::new(partition_key).as_str(),
-            my_json::EscapedJsonString::new(row_key).as_str()
+            my_json::json_string_value::escape_json_string_value(partition_key).as_str(),
+            my_json::json_string_value::escape_json_string_value(row_key).as_str(),
         )
         .into_bytes()
     } else {
         format!(
             "\"PartitionKey\":\"{}\",",
-            my_json::EscapedJsonString::new(partition_key).as_str(),
+            my_json::json_string_value::escape_json_string_value(partition_key).as_str(),
         )
         .into_bytes()
     };

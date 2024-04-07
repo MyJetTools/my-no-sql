@@ -213,7 +213,7 @@ fn deserialize_array<
 
         let db_entity_data = db_entity.unwrap();
 
-        let el = TMyNoSqlEntity::deserialize_entity(db_entity_data.as_bytes().unwrap());
+        let el = TMyNoSqlEntity::deserialize_entity(db_entity_data.as_bytes(&json_array_iterator));
 
         let partition_key = el.get_partition_key();
         if !result.contains_key(partition_key) {

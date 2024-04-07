@@ -473,7 +473,7 @@ fn serialize_entities_to_body<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
         json_array_writer.write(payload);
     }
 
-    Some(json_array_writer.build())
+    Some(json_array_writer.build().into_bytes())
 }
 
 async fn check_error(response: &mut FlUrlResponse) -> Result<(), DataWriterError> {
@@ -534,7 +534,9 @@ fn deserialize_entities<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
     while let Some(item) = json_array_iterator.get_next() {
         let itm = item.unwrap();
 
-        result.push(TEntity::deserialize_entity(itm.as_bytes().unwrap()));
+        result.push(TEntity::deserialize_entity(
+            itm.as_bytes(&json_array_iterator),
+        ));
     }
     Ok(result)
 }
