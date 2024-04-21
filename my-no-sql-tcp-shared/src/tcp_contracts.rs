@@ -1,4 +1,7 @@
-use my_tcp_sockets::socket_reader::{ReadingTcpContractFail, SocketReader, SocketReaderInMem};
+use my_tcp_sockets::{
+    socket_reader::{ReadingTcpContractFail, SocketReader, SocketReaderInMem},
+    TcpWriteBuffer,
+};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{tcp_packets::*, DeleteRowTcpContract};
@@ -72,26 +75,28 @@ pub enum MyNoSqlTcpContract {
 }
 
 impl MyNoSqlTcpContract {
-    pub fn compress_if_make_sence_and_serialize(&self) -> Vec<u8> {
+    pub fn compress_if_make_since(self) -> Self {
         if let Self::CompressedPayload(_) = self {
-            panic!("You can not get compresed payload from compressed payload");
+            panic!("You can not get compress payload from compressed payload");
         }
 
-        let non_compressed = self.serialize();
+        let mut non_compressed = Vec::new();
 
-        let compressed = super::payload_comressor::compress(non_compressed.as_slice()).unwrap();
+        self.serialize(&mut non_compressed);
 
-        if compressed.len() + 10 < non_compressed.len() {
-            Self::CompressedPayload(compressed).serialize()
+        let compressed = super::payload_compressor::compress(non_compressed.as_slice()).unwrap();
+
+        if compressed.len() + 10 < non_compressed.as_slice().len() {
+            Self::CompressedPayload(compressed)
         } else {
-            non_compressed
+            self
         }
     }
 
     pub async fn decompress_if_compressed(self) -> Result<Self, ReadingTcpContractFail> {
         if let Self::CompressedPayload(payload) = self {
             let uncompressed_payload =
-                super::payload_comressor::decompress(payload.as_slice()).unwrap();
+                super::payload_compressor::decompress(payload.as_slice()).unwrap();
 
             let mut reader = SocketReaderInMem::new(uncompressed_payload);
 
@@ -101,7 +106,7 @@ impl MyNoSqlTcpContract {
         }
     }
 
-    pub async fn deserialize<TSocketReader: SocketReader>(
+    pub async fn deserialize<TSocketReader: SocketReader + Send + Sync + 'static>(
         socket_reader: &mut TSocketReader,
     ) -> Result<Self, ReadingTcpContractFail> {
         let packet_no = socket_reader.read_byte().await?;
@@ -110,25 +115,25 @@ impl MyNoSqlTcpContract {
             PING => Ok(Self::Ping {}),
             PONG => Ok(Self::Pong {}),
             GREETING => {
-                let name = crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                let name = crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::Greeting { name })
             }
             SUBSCRIBE => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::Subscribe { table_name })
             }
             INIT_TABLE => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 let data = socket_reader.read_byte_array().await?;
                 Ok(Self::InitTable { table_name, data })
             }
             INIT_PARTITION => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 let partition_key =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
                 let data = socket_reader.read_byte_array().await?;
                 Ok(Self::InitPartition {
                     table_name,
@@ -138,14 +143,14 @@ impl MyNoSqlTcpContract {
             }
             UPDATE_ROWS => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let data = socket_reader.read_byte_array().await?;
                 Ok(Self::UpdateRows { table_name, data })
             }
             DELETE_ROWS => {
                 let table_name =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let rows_amount = socket_reader.read_i32().await?;
 
@@ -168,8 +173,7 @@ impl MyNoSqlTcpContract {
                     );
                 }
 
-                let message =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                let message = crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 panic!("TCP protocol error: {}", message);
             }
@@ -178,10 +182,10 @@ impl MyNoSqlTcpContract {
 
                 let mut compress = false;
                 let node_location =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let node_version =
-                    crate::common_deserializers::read_pascal_string(socket_reader).await?;
+                    crate::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 if packet_version > 0 {
                     compress = socket_reader.read_bool().await?;
@@ -197,21 +201,21 @@ impl MyNoSqlTcpContract {
                 // Version 0 = we read table_name only
                 socket_reader.read_byte().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::SubscribeAsNode(table_name))
             }
             TABLES_NOT_FOUND => {
                 // Version 0 = we read table_name only
                 socket_reader.read_byte().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::TableNotFound(table_name))
             }
             UNSUBSCRIBE => {
                 // Version 0 = we read table_name only
                 socket_reader.read_byte().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
                 Ok(Self::Unsubscribe(table_name))
             }
             COMPRESSED_PAYLOAD => {
@@ -222,10 +226,10 @@ impl MyNoSqlTcpContract {
                 let _protocol_version = socket_reader.read_byte().await?;
                 let confirmation_id = socket_reader.read_i64().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let partitions =
-                    super::common_deserializers::read_list_of_pascal_strings(socket_reader).await?;
+                    super::common_deserializes::read_list_of_pascal_strings(socket_reader).await?;
 
                 Ok(Self::UpdatePartitionsLastReadTime {
                     confirmation_id,
@@ -237,13 +241,13 @@ impl MyNoSqlTcpContract {
                 let _protocol_version = socket_reader.read_byte().await?;
                 let confirmation_id = socket_reader.read_i64().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let partition_key =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let row_keys =
-                    super::common_deserializers::read_list_of_pascal_strings(socket_reader).await?;
+                    super::common_deserializes::read_list_of_pascal_strings(socket_reader).await?;
 
                 Ok(Self::UpdateRowsLastReadTime {
                     confirmation_id,
@@ -257,7 +261,7 @@ impl MyNoSqlTcpContract {
                 let _protocol_version = socket_reader.read_byte().await?;
                 let confirmation_id = socket_reader.read_i64().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let amount = socket_reader.read_i32().await? as usize;
 
@@ -265,9 +269,9 @@ impl MyNoSqlTcpContract {
 
                 for _ in 0..amount {
                     let partition_key =
-                        super::common_deserializers::read_pascal_string(socket_reader).await?;
+                        super::common_deserializes::read_pascal_string(socket_reader).await?;
                     let expiration_time =
-                        super::common_deserializers::read_date_time_opt(socket_reader).await?;
+                        super::common_deserializes::read_date_time_opt(socket_reader).await?;
 
                     partitions.push((partition_key, expiration_time));
                 }
@@ -283,16 +287,16 @@ impl MyNoSqlTcpContract {
                 let _protocol_version = socket_reader.read_byte().await?;
                 let confirmation_id = socket_reader.read_i64().await?;
                 let table_name =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let partition_key =
-                    super::common_deserializers::read_pascal_string(socket_reader).await?;
+                    super::common_deserializes::read_pascal_string(socket_reader).await?;
 
                 let row_keys =
-                    super::common_deserializers::read_list_of_pascal_strings(socket_reader).await?;
+                    super::common_deserializes::read_list_of_pascal_strings(socket_reader).await?;
 
                 let expiration_time =
-                    super::common_deserializers::read_date_time_opt(socket_reader).await?;
+                    super::common_deserializes::read_date_time_opt(socket_reader).await?;
 
                 Ok(Self::UpdateRowsExpirationTime {
                     confirmation_id,
@@ -313,62 +317,57 @@ impl MyNoSqlTcpContract {
 
         return result;
     }
-    pub fn serialize(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
-        self.serialize_into(&mut buffer);
-        buffer
-    }
 
-    pub fn serialize_into(&self, buffer: &mut Vec<u8>) {
+    pub fn serialize(&self, write_buffer: &mut impl TcpWriteBuffer) {
         match self {
             Self::Ping => {
-                buffer.push(PING);
+                write_buffer.write_byte(PING);
             }
             Self::Pong => {
-                buffer.push(PONG);
+                write_buffer.write_byte(PONG);
             }
             Self::Greeting { name } => {
-                buffer.push(GREETING);
-                crate::common_serializers::serialize_pascal_string(buffer, name);
+                write_buffer.write_byte(GREETING);
+                write_buffer.write_pascal_string(name);
             }
             Self::Subscribe { table_name } => {
-                buffer.push(SUBSCRIBE);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name);
+                write_buffer.write_byte(SUBSCRIBE);
+                write_buffer.write_pascal_string(table_name);
             }
             Self::InitTable { table_name, data } => {
-                buffer.push(INIT_TABLE);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name);
-                crate::common_serializers::serialize_byte_array(buffer, data.as_slice());
+                write_buffer.write_byte(INIT_TABLE);
+                write_buffer.write_pascal_string(table_name);
+                write_buffer.write_byte_array(data.as_slice());
             }
             Self::InitPartition {
                 table_name,
                 partition_key,
                 data,
             } => {
-                buffer.push(INIT_PARTITION);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name);
-                crate::common_serializers::serialize_pascal_string(buffer, partition_key);
-                crate::common_serializers::serialize_byte_array(buffer, data.as_slice());
+                write_buffer.write_byte(INIT_PARTITION);
+                write_buffer.write_pascal_string(table_name);
+                write_buffer.write_pascal_string(partition_key);
+                write_buffer.write_byte_array(data.as_slice());
             }
             Self::UpdateRows { table_name, data } => {
-                buffer.push(UPDATE_ROWS);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name);
-                crate::common_serializers::serialize_byte_array(buffer, data.as_slice());
+                write_buffer.write_byte(UPDATE_ROWS);
+                write_buffer.write_pascal_string(table_name);
+                write_buffer.write_byte_array(data.as_slice());
             }
             Self::DeleteRows { table_name, rows } => {
-                buffer.push(DELETE_ROWS);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name);
-                crate::common_serializers::serialize_i32(buffer, rows.len() as i32);
+                write_buffer.write_byte(DELETE_ROWS);
+                write_buffer.write_pascal_string(table_name);
+                write_buffer.write_i32(rows.len() as i32);
 
                 for row in rows {
-                    row.serialize(buffer);
+                    row.serialize(write_buffer);
                 }
             }
             Self::Error { message } => {
-                buffer.push(ERROR);
+                write_buffer.write_byte(ERROR);
                 // Version=0; Means we have one field - message;
-                buffer.push(0);
-                crate::common_serializers::serialize_pascal_string(buffer, message);
+                write_buffer.write_byte(0); // Protocol version
+                write_buffer.write_pascal_string(message);
             }
 
             Self::GreetingFromNode {
@@ -377,53 +376,53 @@ impl MyNoSqlTcpContract {
                 compress,
             } => {
                 if *compress {
-                    buffer.push(GREETING_FROM_NODE);
-                    buffer.push(1);
-                    crate::common_serializers::serialize_pascal_string(buffer, node_location);
-                    crate::common_serializers::serialize_pascal_string(buffer, node_version);
-                    buffer.push(1);
+                    write_buffer.write_byte(GREETING_FROM_NODE);
+                    write_buffer.write_byte(1);
+                    write_buffer.write_pascal_string(node_location);
+                    write_buffer.write_pascal_string(node_version);
+                    write_buffer.write_byte(1);
                 } else {
-                    buffer.push(GREETING_FROM_NODE);
-                    buffer.push(0);
-                    crate::common_serializers::serialize_pascal_string(buffer, node_location);
-                    crate::common_serializers::serialize_pascal_string(buffer, node_version);
+                    write_buffer.write_byte(GREETING_FROM_NODE);
+                    write_buffer.write_byte(0);
+                    write_buffer.write_pascal_string(node_location);
+                    write_buffer.write_pascal_string(node_version);
                 }
             }
 
             Self::SubscribeAsNode(table_name) => {
-                buffer.push(SUBSCRIBE_AS_NODE);
+                write_buffer.write_byte(SUBSCRIBE_AS_NODE);
                 // Protocol version
-                buffer.push(0);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name.as_str());
+                write_buffer.write_byte(0);
+                write_buffer.write_pascal_string(table_name.as_str());
             }
 
             Self::TableNotFound(table_name) => {
-                buffer.push(TABLES_NOT_FOUND);
+                write_buffer.write_byte(TABLES_NOT_FOUND);
                 // Protocol version
-                buffer.push(0);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name.as_str());
+                write_buffer.write_byte(0);
+                write_buffer.write_pascal_string(table_name.as_str());
             }
 
             Self::Unsubscribe(table_name) => {
-                buffer.push(UNSUBSCRIBE);
+                write_buffer.write_byte(UNSUBSCRIBE);
                 // Protocol version
-                buffer.push(0);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name.as_str());
+                write_buffer.write_byte(0);
+                write_buffer.write_pascal_string(table_name.as_str());
             }
             Self::CompressedPayload(payload) => {
-                buffer.push(COMPRESSED_PAYLOAD);
-                crate::common_serializers::serialize_byte_array(buffer, payload.as_slice());
+                write_buffer.write_byte(COMPRESSED_PAYLOAD);
+                write_buffer.write_byte_array(payload.as_slice());
             }
             Self::UpdatePartitionsLastReadTime {
                 table_name,
                 confirmation_id,
                 partitions,
             } => {
-                buffer.push(UPDATE_PARTITIONS_LAST_READ_TIME);
-                crate::common_serializers::serialize_byte(buffer, 0); // Protocol version
-                crate::common_serializers::serialize_i64(buffer, *confirmation_id);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name.as_str());
-                crate::common_serializers::serialize_list_of_pascal_strings(buffer, partitions);
+                write_buffer.write_byte(UPDATE_PARTITIONS_LAST_READ_TIME);
+                write_buffer.write_byte(0); // Protocol version
+                write_buffer.write_i64(*confirmation_id);
+                write_buffer.write_pascal_string(table_name);
+                write_buffer.write_list_of_pascal_strings(partitions);
             }
             Self::UpdateRowsLastReadTime {
                 table_name,
@@ -431,12 +430,12 @@ impl MyNoSqlTcpContract {
                 partition_key,
                 row_keys,
             } => {
-                buffer.push(UPDATE_ROWS_LAST_READ_TIME);
-                crate::common_serializers::serialize_byte(buffer, 0); // Protocol version
-                crate::common_serializers::serialize_i64(buffer, *confirmation_id);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name.as_str());
-                crate::common_serializers::serialize_pascal_string(buffer, &partition_key.as_str());
-                crate::common_serializers::serialize_list_of_pascal_strings(buffer, row_keys);
+                write_buffer.write_byte(UPDATE_ROWS_LAST_READ_TIME);
+                write_buffer.write_byte(0); // Protocol version
+                write_buffer.write_i64(*confirmation_id);
+                write_buffer.write_pascal_string(table_name);
+                write_buffer.write_pascal_string(partition_key);
+                write_buffer.write_list_of_pascal_strings(row_keys);
             }
 
             Self::UpdatePartitionsExpirationTime {
@@ -444,22 +443,23 @@ impl MyNoSqlTcpContract {
                 confirmation_id,
                 partitions,
             } => {
-                buffer.push(UPDATE_PARTITIONS_EXPIRATION_TIME);
-                crate::common_serializers::serialize_byte(buffer, 0); // Protocol version
-                crate::common_serializers::serialize_i64(buffer, *confirmation_id);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name.as_str());
+                write_buffer.write_byte(UPDATE_PARTITIONS_EXPIRATION_TIME);
+                write_buffer.write_byte(0); // Protocol version
+
+                write_buffer.write_i64(*confirmation_id);
+
+                write_buffer.write_pascal_string(table_name.as_str());
 
                 let amount = partitions.len() as i32;
-
-                crate::common_serializers::serialize_i32(buffer, amount);
+                write_buffer.write_i32(amount);
 
                 for (partition_key, expiration_time) in partitions {
-                    crate::common_serializers::serialize_pascal_string(
-                        buffer,
-                        partition_key.as_str(),
-                    );
+                    write_buffer.write_pascal_string(partition_key.as_str());
 
-                    crate::common_serializers::serialize_date_time_opt(buffer, *expiration_time);
+                    crate::common_serializers::serialize_date_time_opt(
+                        write_buffer,
+                        *expiration_time,
+                    );
                 }
             }
 
@@ -470,25 +470,25 @@ impl MyNoSqlTcpContract {
                 row_keys,
                 expiration_time,
             } => {
-                buffer.push(UPDATE_ROWS_EXPIRATION_TIME);
-                crate::common_serializers::serialize_byte(buffer, 0); // Protocol version
-                crate::common_serializers::serialize_i64(buffer, *confirmation_id);
-                crate::common_serializers::serialize_pascal_string(buffer, table_name.as_str());
-                crate::common_serializers::serialize_pascal_string(buffer, &partition_key.as_str());
-                crate::common_serializers::serialize_list_of_pascal_strings(buffer, row_keys);
-                crate::common_serializers::serialize_date_time_opt(buffer, *expiration_time);
+                write_buffer.write_byte(UPDATE_ROWS_EXPIRATION_TIME);
+                write_buffer.write_byte(0); // Protocol version
+                write_buffer.write_i64(*confirmation_id);
+                write_buffer.write_pascal_string(table_name.as_str());
+                write_buffer.write_pascal_string(partition_key.as_str());
+                write_buffer.write_list_of_pascal_strings(row_keys);
+                crate::common_serializers::serialize_date_time_opt(write_buffer, *expiration_time);
             }
 
             Self::Confirmation { confirmation_id } => {
-                buffer.push(CONFIRMATION);
-                crate::common_serializers::serialize_byte(buffer, 0); // Protocol version
-                crate::common_serializers::serialize_i64(buffer, *confirmation_id);
+                write_buffer.write_byte(CONFIRMATION);
+                write_buffer.write_byte(0); // Protocol version
+                write_buffer.write_i64(*confirmation_id);
             }
         }
     }
 }
 
-impl my_tcp_sockets::tcp_connection::TcpContract for MyNoSqlTcpContract {
+impl my_tcp_sockets::TcpContract for MyNoSqlTcpContract {
     fn is_pong(&self) -> bool {
         match self {
             Self::Pong => true,

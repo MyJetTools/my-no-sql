@@ -1,9 +1,21 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::VecDeque;
 #[derive(Debug, Clone)]
 pub struct UpdateRowsLastReadTimeEvent {
     pub table_name: String,
     pub partition_key: String,
-    pub row_keys: BTreeMap<String, ()>,
+    pub row_keys: Vec<String>,
+}
+
+impl UpdateRowsLastReadTimeEvent {
+    pub fn insert_row_key(&mut self, row_key: &str) {
+        let index = self
+            .row_keys
+            .binary_search_by(|itm| itm.as_str().cmp(row_key));
+
+        if let Err(index) = index {
+            self.row_keys.insert(index, row_key.to_string());
+        }
+    }
 }
 
 pub struct UpdateRowsLastReadTimeQueue {
@@ -29,16 +41,20 @@ impl UpdateRowsLastReadTimeQueue {
             .find(|itm| itm.table_name == table_name && itm.partition_key == partition_key)
         {
             for row_key in row_keys {
-                item.row_keys.insert(row_key.to_string(), ());
+                item.row_keys.push(row_key.to_string());
             }
             return;
         }
 
-        let item = UpdateRowsLastReadTimeEvent {
+        let mut item = UpdateRowsLastReadTimeEvent {
             table_name: table_name.to_string(),
             partition_key: partition_key.to_string(),
-            row_keys: row_keys.map(|k| (k.to_string(), ())).collect(),
+            row_keys: Vec::new(),
         };
+
+        for row_key in row_keys {
+            item.insert_row_key(row_key);
+        }
 
         self.queue.push_back(item);
     }

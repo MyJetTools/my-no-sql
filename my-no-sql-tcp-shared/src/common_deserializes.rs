@@ -14,8 +14,8 @@ pub async fn read_pascal_string(
     Ok(String::from_utf8(result)?)
 }
 
-pub async fn read_list_of_pascal_strings(
-    reader: &mut impl SocketReader,
+pub async fn read_list_of_pascal_strings<TSocketReader: SocketReader + Send + Sync + 'static>(
+    reader: &mut TSocketReader,
 ) -> Result<Vec<String>, ReadingTcpContractFail> {
     let amount = reader.read_i32().await? as usize;
 
@@ -28,8 +28,8 @@ pub async fn read_list_of_pascal_strings(
     Ok(result)
 }
 
-pub async fn read_date_time_opt(
-    reader: &mut impl SocketReader,
+pub async fn read_date_time_opt<TSocketReader: SocketReader + Send + Sync + 'static>(
+    reader: &mut TSocketReader,
 ) -> Result<Option<DateTimeAsMicroseconds>, ReadingTcpContractFail> {
     let unix_microseconds = reader.read_i64().await?;
 

@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use my_no_sql_abstractions::MyNoSqlEntity;
-use my_no_sql_tcp_shared::{sync_to_main::SyncToMainNodeHandler, MyNoSqlReaderTcpSerializer};
+use my_no_sql_tcp_shared::{sync_to_main::SyncToMainNodeHandler, MyNoSqlTcpSerializerFactory};
 use my_tcp_sockets::TcpClient;
 use rust_extensions::{AppStates, StrOrString};
 
@@ -66,7 +66,7 @@ impl MyNoSqlTcpConnection {
 
         self.tcp_client
             .start(
-                Arc::new(|| -> MyNoSqlReaderTcpSerializer { MyNoSqlReaderTcpSerializer::new() }),
+                Arc::new(MyNoSqlTcpSerializerFactory),
                 self.tcp_events.clone(),
                 my_logger::LOGGER.clone(),
             )

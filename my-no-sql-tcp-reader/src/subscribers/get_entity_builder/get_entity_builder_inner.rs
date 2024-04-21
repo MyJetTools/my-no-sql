@@ -54,7 +54,6 @@ impl<'s, TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
         if result.is_some() {
             self.inner
                 .get_sync_handler()
-                .event_notifier
                 .update(
                     TMyNoSqlEntity::TABLE_NAME,
                     self.partition_key,
