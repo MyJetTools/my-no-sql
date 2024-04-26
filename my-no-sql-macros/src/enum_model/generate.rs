@@ -51,6 +51,7 @@ pub fn generate(
 
         const TABLE_NAME: &'static str = "";
 
+
         fn get_partition_key(&self) -> &str {
             Self::PARTITION_KEY
         }

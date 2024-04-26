@@ -50,7 +50,6 @@ pub fn generate(
 
             const TABLE_NAME: &'static str = #table_name;
 
-
         fn get_partition_key(&self) -> &str {
             use my_no_sql_sdk::abstractions::MyNoSqlEntity;
             match self {
@@ -86,7 +85,7 @@ pub fn generate(
             my_no_sql_sdk::core::entity_serializer::inject_partition_key_and_row_key(result, self.get_partition_key(), row_key)
 
         }
-        fn deserialize_entity(src: &[u8]) -> Self {
+        fn deserialize_entity(src: &[u8]) -> Option<Self> {
             #deserialize_cases
         }
     }
@@ -178,11 +177,13 @@ fn get_deserialize_cases(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenSt
 
                     if let Some(row_key) = #model_ident::ROW_KEY{
                         if entity_partition_key == #model_ident::PARTITION_KEY && entity_row_key == row_key {
-                            return Self::#enum_case_ident(#model_ident::deserialize_entity(src));
+                            let item = #model_ident::deserialize_entity(src)?;
+                            return Self::#enum_case_ident(item).into();
                         }
                     }else{
                         if entity_partition_key == #model_ident::PARTITION_KEY {
-                            return Self::#enum_case_ident(#model_ident::deserialize_entity(src));
+                            let item = #model_ident::deserialize_entity(src)?;
+                            return Self::#enum_case_ident(item).into();
                         }
     
                     }
@@ -198,7 +199,7 @@ fn get_deserialize_cases(enum_cases: &[EnumCase]) -> Result<proc_macro2::TokenSt
     }
 
     result.push(quote::quote!{
-        panic!("Unknown entity with partition key: {} and row key: {}", entity_partition_key, entity_row_key);
+        return None;
     });
 
     Ok(quote::quote!(#(#result)*))

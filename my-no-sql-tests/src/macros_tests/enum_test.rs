@@ -33,7 +33,7 @@ fn test_serialize_deserialize_case_1() {
 
     let vec = entity.serialize_entity();
 
-    let dest = MyNoSqlEnumEntityTest::deserialize_entity(&vec);
+    let dest = MyNoSqlEnumEntityTest::deserialize_entity(&vec).unwrap();
 
     let model = dest.unwrap_case1();
 
@@ -53,7 +53,7 @@ fn test_serialize_deserialize_case_2() {
 
     let vec = entity.serialize_entity();
 
-    let dest = MyNoSqlEnumEntityTest::deserialize_entity(&vec);
+    let dest = MyNoSqlEnumEntityTest::deserialize_entity(&vec).unwrap();
 
     let model = dest.unwrap_case2();
 

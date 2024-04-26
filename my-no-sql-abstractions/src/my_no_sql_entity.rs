@@ -5,9 +5,9 @@ pub trait MyNoSqlEntity {
     fn get_time_stamp(&self) -> i64;
 }
 
-pub trait MyNoSqlEntitySerializer {
+pub trait MyNoSqlEntitySerializer: Sized {
     fn serialize_entity(&self) -> Vec<u8>;
-    fn deserialize_entity(src: &[u8]) -> Self;
+    fn deserialize_entity(src: &[u8]) -> Option<Self>;
 }
 
 pub trait GetMyNoSqlEntity {

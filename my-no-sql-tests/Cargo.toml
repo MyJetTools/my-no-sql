@@ -12,3 +12,5 @@ async-trait = "*"
 my-no-sql-macros = { path = "../my-no-sql-macros" }
 serde = { version = "*", features = ["derive"] }
 my-no-sql-sdk = { path = "../my-no-sql-sdk" }
+
+my-no-sql-tcp-reader = { path = "../my-no-sql-tcp-reader" }

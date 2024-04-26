@@ -169,7 +169,7 @@ pub async fn get_entity<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync 
 
     if is_ok_result(&response) {
         let entity = TEntity::deserialize_entity(response.get_body_as_slice().await?);
-        return Ok(Some(entity));
+        return Ok(entity);
     }
 
     return Ok(None);
@@ -352,7 +352,7 @@ pub async fn delete_row<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync 
 
     if response.get_status_code() == 200 {
         let entity = TEntity::deserialize_entity(response.get_body_as_slice().await?);
-        return Ok(Some(entity));
+        return Ok(entity);
     }
 
     return Ok(None);
@@ -530,7 +530,7 @@ fn deserialize_entities<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
     for itm in JsonArrayIterator::new(src) {
         let itm = itm.unwrap();
 
-        result.push(TEntity::deserialize_entity(itm));
+        result.push(TEntity::deserialize_entity(itm).unwrap());
     }
     Ok(result)
 }
@@ -589,8 +589,9 @@ mod tests {
             my_no_sql_core::entity_serializer::serialize(self)
         }
 
-        fn deserialize_entity(src: &[u8]) -> Self {
-            my_no_sql_core::entity_serializer::deserialize(src)
+        fn deserialize_entity(src: &[u8]) -> Option<Self> {
+            let result: Self = my_no_sql_core::entity_serializer::deserialize(src);
+            Some(result)
         }
     }
 

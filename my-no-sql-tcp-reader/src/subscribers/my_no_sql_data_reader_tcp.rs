@@ -124,12 +124,14 @@ where
 
             let el = TMyNoSqlEntity::deserialize_entity(db_entity_data);
 
-            let partition_key = el.get_partition_key();
-            if !result.contains_key(partition_key) {
-                result.insert(partition_key.to_string(), Vec::new());
-            }
+            if let Some(el) = el {
+                let partition_key = el.get_partition_key();
+                if !result.contains_key(partition_key) {
+                    result.insert(partition_key.to_string(), Vec::new());
+                }
 
-            result.get_mut(partition_key).unwrap().push(el);
+                result.get_mut(partition_key).unwrap().push(el);
+            }
         }
 
         result
