@@ -1,4 +1,5 @@
 use quote::ToTokens;
+use types_reader::TokensObject;
 
 pub fn compile_struct_with_new_fields(
     ast: &proc_macro2::TokenStream,
@@ -103,14 +104,31 @@ pub fn get_fn_get_time_stamp_token() -> proc_macro2::TokenStream {
     }
 }
 
-pub fn get_fn_standard_serialize_deserialize() -> proc_macro2::TokenStream {
+pub fn get_fn_standard_serialize_deserialize(
+    has_f64_inside_model: bool,
+) -> proc_macro2::TokenStream {
+    let test_after_serialize = if has_f64_inside_model {
+        quote::quote! {
+            my_no_sql_sdk::core::entity_serializer::deserialize(&result);
+        }
+    } else {
+        quote::quote! {}
+    };
+
     quote::quote! {
         fn serialize_entity(&self) -> Vec<u8> {
-            my_no_sql_sdk::core::entity_serializer::serialize(self)
+            let result = my_no_sql_sdk::core::entity_serializer::serialize(self);
+            #test_after_serialize
+            result
         }
 
         fn deserialize_entity(src: &[u8]) -> Self {
             my_no_sql_sdk::core::entity_serializer::deserialize(src)
         }
     }
+}
+
+pub fn has_f64_parameter(parameters: &TokensObject) -> bool {
+    //todo!("Implement")
+    false
 }

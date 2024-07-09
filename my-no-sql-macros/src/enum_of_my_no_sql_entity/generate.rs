@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use types_reader::{EnumCase, TokensObject};
+use types_reader::{EnumCase, StructureSchema, TokensObject};
 
 use crate::EnumOfMyNoSqlEntityParameters;
 
@@ -9,6 +9,7 @@ pub fn generate(
     input: proc_macro::TokenStream,
 ) -> Result<proc_macro::TokenStream, syn::Error> {
     let parameters: TokensObject = attr.try_into()?;
+  
 
     let parameters = EnumOfMyNoSqlEntityParameters::try_from(&parameters)?;
 

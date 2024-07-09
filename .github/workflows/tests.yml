@@ -17,10 +17,12 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Test Build      
+      - name: Test my-no-sql-core      
         run: |
+          cd my-no-sql-core
           cargo test
 
-      - name: Test Master-Node feature      
+      - name: Test my-no-sql-core Master-Node feature      
         run: |
+          cd my-no-sql-core
           cargo build --features master-node

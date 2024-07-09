@@ -13,9 +13,11 @@ pub fn generate(
 
     let attr: TokensObject = attr.try_into()?;
 
+    let has_f64_param = crate::entity_utils::has_f64_parameter(&attr);
+
     let params = MyNoSqlEntityParameters::try_from(&attr)?;
 
-    let result = super::generate_base_impl(&ast, params.table_name)?;
+    let result = super::generate_base_impl(&ast, params.table_name, has_f64_param)?;
 
     Ok(result.into())
 }

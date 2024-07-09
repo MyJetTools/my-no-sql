@@ -8,6 +8,8 @@ pub fn generate(
 ) -> Result<proc_macro::TokenStream, syn::Error> {
     let parameters: TokensObject = attr.try_into()?;
 
+    let has_f64_param = crate::entity_utils::has_f64_parameter(&parameters);
+
     let parameters = EnumModelParameters::try_from(&parameters)?;
 
     let partition_key = parameters.partition_key;
@@ -18,7 +20,7 @@ pub fn generate(
 
     let fn_get_time_stamp = get_fn_get_time_stamp_token();
 
-    let fn_serialize_deserialize = get_fn_standard_serialize_deserialize();
+    let fn_serialize_deserialize = get_fn_standard_serialize_deserialize(has_f64_param);
 
     let impl_additional_traits =
         impl_single_entity_or_entities_trait(&struct_name, partition_key, row_key);
