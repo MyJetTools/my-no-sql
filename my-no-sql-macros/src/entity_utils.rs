@@ -111,7 +111,7 @@ pub fn get_fn_standard_serialize_deserialize() -> proc_macro2::TokenStream {
 
 
         fn deserialize_entity(src: &[u8]) -> Option<Self> {
-          let result: Self = my_no_sql_sdk::core::entity_serializer::deserialize(src);
+          let result = my_no_sql_sdk::core::entity_serializer::deserialize(src);
           Some(result)
         }
     }

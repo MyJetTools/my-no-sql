@@ -247,7 +247,7 @@ mod tests {
         }
 
         fn deserialize_entity(src: &[u8]) -> Option<Self> {
-            let result: Self = my_no_sql_core::entity_serializer::deserialize(src);
+            let result = my_no_sql_core::entity_serializer::deserialize(src);
             Some(result)
         }
     }

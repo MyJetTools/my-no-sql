@@ -1,4 +1,4 @@
-use my_json::json_reader::JsonFirstLine;
+use my_json::json_reader::JsonKeyValue;
 
 #[derive(Debug, Clone)]
 pub struct KeyValueContentPosition {
@@ -31,16 +31,16 @@ pub struct JsonKeyValuePosition {
 }
 
 impl JsonKeyValuePosition {
-    pub fn new(src: &JsonFirstLine) -> Self {
+    pub fn new(src: &JsonKeyValue) -> Self {
         Self {
             key: KeyValueContentPosition {
-                start: src.name_start,
-                end: src.name_end,
+                start: src.name.start,
+                end: src.name.end,
             },
 
             value: KeyValueContentPosition {
-                start: src.value_start,
-                end: src.value_end,
+                start: src.value.start,
+                end: src.value.end,
             },
         }
     }

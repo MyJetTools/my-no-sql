@@ -1,4 +1,6 @@
+use my_json::json_reader::JsonFirstLineReader;
 use my_no_sql_abstractions::MyNoSqlEntity;
+use rust_extensions::array_of_bytes_iterator::SliceIterator;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::db_json_entity::DbJsonEntity;
@@ -19,7 +21,9 @@ where
     match parse_result {
         Ok(el) => return el,
         Err(err) => {
-            let db_entity = DbJsonEntity::new(data);
+            let slice_iterator = SliceIterator::new(data);
+            let json_first_line_iterator = JsonFirstLineReader::new(slice_iterator);
+            let db_entity = DbJsonEntity::new(json_first_line_iterator);
 
             match db_entity {
                 Ok(db_entity) => {
@@ -57,14 +61,14 @@ pub fn inject_partition_key_and_row_key(
     let to_insert = if let Some(row_key) = row_key {
         format!(
             "\"PartitionKey\":\"{}\",\"RowKey\":\"{}\",",
-            my_json::EscapedJsonString::new(partition_key).as_str(),
-            my_json::EscapedJsonString::new(row_key).as_str()
+            my_json::json_string_value::escape_json_string_value(partition_key).as_str(),
+            my_json::json_string_value::escape_json_string_value(row_key).as_str(),
         )
         .into_bytes()
     } else {
         format!(
             "\"PartitionKey\":\"{}\",",
-            my_json::EscapedJsonString::new(partition_key).as_str(),
+            my_json::json_string_value::escape_json_string_value(partition_key).as_str(),
         )
         .into_bytes()
     };

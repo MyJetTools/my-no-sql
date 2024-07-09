@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
-use my_json::json_reader::array_parser::JsonArrayIterator;
+use my_json::json_reader::array_iterator::JsonArrayIterator;
 use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
-use rust_extensions::{ApplicationStates, StrOrString};
+use rust_extensions::{array_of_bytes_iterator::SliceIterator, ApplicationStates, StrOrString};
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
@@ -109,6 +109,40 @@ where
     }
 
     pub fn deserialize_array(&self, data: &[u8]) -> BTreeMap<String, Vec<TMyNoSqlEntity>> {
+        let slice_iterator = SliceIterator::new(data);
+
+        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator);
+
+        let mut result = BTreeMap::new();
+
+        while let Some(db_entity) = json_array_iterator.get_next() {
+            if let Err(err) = &db_entity {
+                panic!(
+                    "Table: {}. The whole array of json entities is broken. Err: {:?}",
+                    TMyNoSqlEntity::TABLE_NAME,
+                    err
+                );
+            }
+
+            let db_entity_data = db_entity.unwrap();
+
+            let el =
+                TMyNoSqlEntity::deserialize_entity(db_entity_data.as_bytes(&json_array_iterator));
+
+            if let Some(el) = el {
+                let partition_key = el.get_partition_key();
+                if !result.contains_key(partition_key) {
+                    result.insert(partition_key.to_string(), Vec::new());
+                }
+
+                result.get_mut(partition_key).unwrap().push(el);
+            }
+        }
+
+        result
+
+        /*
+
         let mut result = BTreeMap::new();
 
         for db_entity in JsonArrayIterator::new(data) {
@@ -135,6 +169,7 @@ where
         }
 
         result
+         */
     }
 
     pub async fn get_enum_case_models_by_partition_key<
