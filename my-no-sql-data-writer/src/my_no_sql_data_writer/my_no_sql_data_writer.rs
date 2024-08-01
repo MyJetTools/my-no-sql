@@ -80,8 +80,14 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
     }
 
     #[cfg(feature = "with-ssh")]
-    pub async fn set_ssh_credentials(&mut self, ssh_credentials: Arc<SshCredentials>) {
-        self.fl_url_factory.ssh_credentials = Some(ssh_credentials);
+    pub async fn set_ssh_cert_credentials(
+        &mut self,
+        cert_credentials: std::collections::HashMap<
+            String,
+            flurl::my_ssh::SshCredentialsSettingsModel,
+        >,
+    ) {
+        self.fl_url_factory.ssh_cert_credentials = Some(cert_credentials);
     }
 
     #[cfg(feature = "with-ssh")]
