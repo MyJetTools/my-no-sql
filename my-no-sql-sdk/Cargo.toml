@@ -13,6 +13,7 @@ data-reader = ["dep:my-no-sql-tcp-reader"]
 tcp-contracts = ["dep:my-no-sql-tcp-shared"]
 master-node = ["my-no-sql-core/master-node"]
 debug_db_row = ["my-no-sql-core/debug_db_row"]
+with-ssh = ["my-no-sql-data-writer?/with-ssh"]
 
 [dependencies]
 
