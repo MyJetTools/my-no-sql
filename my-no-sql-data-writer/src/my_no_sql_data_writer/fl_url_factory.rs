@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use flurl::{
-    my_ssh::{SshCredentials, SshSessionsPool},
-    FlUrl,
-};
+use flurl::FlUrl;
+
+#[cfg(feature = "with-ssh")]
+use flurl::my_ssh::{SshCredentials, SshSessionsPool};
+
 use rust_extensions::UnsafeValue;
 
 use super::{CreateTableParams, DataWriterError, MyNoSqlWriterSettings};
@@ -28,7 +29,9 @@ impl FlUrlFactory {
     ) -> Self {
         Self {
             auto_create_table_params,
+            #[cfg(feature = "with-ssh")]
             ssh_credentials: None,
+            #[cfg(feature = "with-ssh")]
             ssh_sessions_pool: None,
             create_table_is_called: UnsafeValue::new(false).into(),
             settings,
@@ -39,10 +42,12 @@ impl FlUrlFactory {
     async fn create_fl_url(&self, url: &str) -> FlUrl {
         let mut fl_url = flurl::FlUrl::new(url);
 
+        #[cfg(feature = "with-ssh")]
         if let Some(ssh_credentials) = &self.ssh_credentials {
             fl_url = fl_url.set_ssh_credentials(ssh_credentials.clone());
         }
 
+        #[cfg(feature = "with-ssh")]
         if let Some(ssh_sessions_pool) = &self.ssh_sessions_pool {
             fl_url = fl_url.set_ssh_sessions_pool(ssh_sessions_pool.clone());
         }

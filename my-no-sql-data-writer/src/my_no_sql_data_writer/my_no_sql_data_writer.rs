@@ -79,10 +79,12 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         .await
     }
 
+    #[cfg(feature = "with-ssh")]
     pub async fn set_ssh_credentials(&mut self, ssh_credentials: Arc<SshCredentials>) {
         self.fl_url_factory.ssh_credentials = Some(ssh_credentials);
     }
 
+    #[cfg(feature = "with-ssh")]
     pub async fn set_ssh_sessions_pool(&mut self, ssh_sessions_pool: Arc<SshSessionsPool>) {
         self.fl_url_factory.ssh_sessions_pool = Some(ssh_sessions_pool);
     }
