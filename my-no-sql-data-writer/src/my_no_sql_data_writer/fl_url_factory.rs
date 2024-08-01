@@ -15,6 +15,7 @@ pub struct FlUrlFactory {
     auto_create_table_params: Option<Arc<CreateTableParams>>,
     #[cfg(feature = "with-ssh")]
     pub ssh_sessions_pool: Option<Arc<SshSessionsPool>>,
+    #[cfg(feature = "with-ssh")]
     pub ssh_cert_credentials:
         Option<std::collections::HashMap<String, flurl::my_ssh::SshCredentialsSettingsModel>>,
     create_table_is_called: Arc<UnsafeValue<bool>>,
@@ -34,18 +35,13 @@ impl FlUrlFactory {
             create_table_is_called: UnsafeValue::new(false).into(),
             settings,
             table_name,
+            #[cfg(feature = "with-ssh")]
             ssh_cert_credentials: None,
         }
     }
     #[cfg(not(feature = "with-ssh"))]
     async fn create_fl_url(&self, url: &str) -> FlUrl {
-        let mut fl_url = flurl::FlUrl::new(url);
-
-        #[cfg(feature = "with-ssh")]
-        if let Some(ssh_sessions_pool) = &self.ssh_sessions_pool {
-            fl_url = fl_url.set_ssh_sessions_pool(ssh_sessions_pool.clone());
-        }
-
+        let fl_url = flurl::FlUrl::new(url);
         fl_url
     }
     #[cfg(feature = "with-ssh")]
@@ -53,7 +49,6 @@ impl FlUrlFactory {
         let mut fl_url =
             flurl::FlUrl::new_with_maybe_ssh(url, self.ssh_cert_credentials.as_ref()).await;
 
-        #[cfg(feature = "with-ssh")]
         if let Some(ssh_sessions_pool) = &self.ssh_sessions_pool {
             fl_url = fl_url.set_ssh_sessions_pool(ssh_sessions_pool.clone());
         }
