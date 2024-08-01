@@ -1,13 +1,17 @@
 use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 use flurl::FlUrl;
+
 use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity, MyNoSqlEntitySerializer};
+
+#[cfg(feature = "with-ssh")]
+use flurl::my_ssh::*;
 
 use serde::{Deserialize, Serialize};
 
 use crate::{MyNoSqlDataWriterWithRetries, MyNoSqlWriterSettings};
 
-use super::{DataWriterError, UpdateReadStatistics};
+use super::{fl_url_factory::FlUrlFactory, DataWriterError, UpdateReadStatistics};
 
 pub struct CreateTableParams {
     pub persist: bool,
@@ -40,9 +44,9 @@ impl CreateTableParams {
 }
 
 pub struct MyNoSqlDataWriter<TEntity: MyNoSqlEntity + Sync + Send> {
-    settings: Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     sync_period: DataSynchronizationPeriod,
     phantom: PhantomData<TEntity>,
+    fl_url_factory: FlUrlFactory,
 }
 
 impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlDataWriter<TEntity> {
@@ -51,25 +55,23 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         auto_create_table_params: Option<CreateTableParams>,
         sync_period: DataSynchronizationPeriod,
     ) -> Self {
-        if let Some(create_table_params) = auto_create_table_params {
-            tokio::spawn(super::execution::create_table_if_not_exists(
-                settings.clone(),
-                TEntity::TABLE_NAME,
-                create_table_params,
-                sync_period,
-            ));
-        }
-
         Self {
-            settings,
             phantom: PhantomData,
             sync_period,
+            fl_url_factory: FlUrlFactory::new(
+                settings,
+                auto_create_table_params.map(|itm| itm.into()),
+                TEntity::TABLE_NAME,
+            ),
         }
     }
 
     pub async fn create_table(&self, params: CreateTableParams) -> Result<(), DataWriterError> {
+        let (fl_url, url) = self.fl_url_factory.get_fl_url().await?;
+
         super::execution::create_table(
-            &self.settings,
+            fl_url,
+            url.as_str(),
             TEntity::TABLE_NAME,
             params,
             &self.sync_period,
@@ -77,12 +79,22 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         .await
     }
 
+    pub async fn set_ssh_credentials(&mut self, ssh_credentials: Arc<SshCredentials>) {
+        self.fl_url_factory.ssh_credentials = Some(ssh_credentials);
+    }
+
+    pub async fn set_ssh_sessions_pool(&mut self, ssh_sessions_pool: Arc<SshSessionsPool>) {
+        self.fl_url_factory.ssh_sessions_pool = Some(ssh_sessions_pool);
+    }
+
     pub async fn create_table_if_not_exists(
         &self,
-        params: CreateTableParams,
+        params: &CreateTableParams,
     ) -> Result<(), DataWriterError> {
+        let (fl_url, url) = self.fl_url_factory.get_fl_url().await?;
         super::execution::create_table_if_not_exists(
-            self.settings.clone(),
+            fl_url,
+            url.as_str(),
             TEntity::TABLE_NAME,
             params,
             self.sync_period,
@@ -96,7 +108,7 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         max_attempts: usize,
     ) -> MyNoSqlDataWriterWithRetries<TEntity> {
         MyNoSqlDataWriterWithRetries::new(
-            self.settings.clone(),
+            self.fl_url_factory.clone(),
             self.sync_period,
             delay_between_attempts,
             max_attempts,
@@ -104,18 +116,21 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
     }
 
     pub async fn insert_entity(&self, entity: &TEntity) -> Result<(), DataWriterError> {
-        super::execution::insert_entity(&self.settings, entity, &self.sync_period).await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::insert_entity(fl_url, entity, &self.sync_period).await
     }
 
     pub async fn insert_or_replace_entity(&self, entity: &TEntity) -> Result<(), DataWriterError> {
-        super::execution::insert_or_replace_entity(&self.settings, entity, &self.sync_period).await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::insert_or_replace_entity(fl_url, entity, &self.sync_period).await
     }
 
     pub async fn bulk_insert_or_replace(
         &self,
         entities: &[TEntity],
     ) -> Result<(), DataWriterError> {
-        super::execution::bulk_insert_or_replace(&self.settings, entities, &self.sync_period).await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::bulk_insert_or_replace(fl_url, entities, &self.sync_period).await
     }
 
     pub async fn get_entity(
@@ -124,8 +139,9 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         row_key: &str,
         update_read_statistics: Option<UpdateReadStatistics>,
     ) -> Result<Option<TEntity>, DataWriterError> {
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
         super::execution::get_entity(
-            &self.settings,
+            fl_url,
             partition_key,
             row_key,
             update_read_statistics.as_ref(),
@@ -138,8 +154,9 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         partition_key: &str,
         update_read_statistics: Option<UpdateReadStatistics>,
     ) -> Result<Option<Vec<TEntity>>, DataWriterError> {
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
         super::execution::get_by_partition_key(
-            &self.settings,
+            fl_url,
             partition_key,
             update_read_statistics.as_ref(),
         )
@@ -157,8 +174,9 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         &self,
         update_read_statistics: Option<UpdateReadStatistics>,
     ) -> Result<Option<Vec<TResult>>, DataWriterError> {
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
         super::execution::get_enum_case_models_by_partition_key(
-            &self.settings,
+            fl_url,
             update_read_statistics.as_ref(),
         )
         .await
@@ -175,14 +193,16 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         &self,
         update_read_statistics: Option<UpdateReadStatistics>,
     ) -> Result<Option<TResult>, DataWriterError> {
-        super::execution::get_enum_case_model(&self.settings, update_read_statistics.as_ref()).await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::get_enum_case_model(fl_url, update_read_statistics.as_ref()).await
     }
 
     pub async fn get_by_row_key(
         &self,
         row_key: &str,
     ) -> Result<Option<Vec<TEntity>>, DataWriterError> {
-        super::execution::get_by_row_key(&self.settings, row_key).await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::get_by_row_key(fl_url, row_key).await
     }
 
     pub async fn delete_enum_case<
@@ -195,7 +215,8 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
     >(
         &self,
     ) -> Result<Option<TResult>, DataWriterError> {
-        super::execution::delete_enum_case(&self.settings).await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::delete_enum_case(fl_url).await
     }
 
     pub async fn delete_enum_case_with_row_key<
@@ -209,7 +230,8 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         &self,
         row_key: &str,
     ) -> Result<Option<TResult>, DataWriterError> {
-        super::execution::delete_enum_case_with_row_key(&self.settings, row_key).await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::delete_enum_case_with_row_key(fl_url, row_key).await
     }
 
     pub async fn delete_row(
@@ -217,24 +239,26 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         partition_key: &str,
         row_key: &str,
     ) -> Result<Option<TEntity>, DataWriterError> {
-        super::execution::delete_row(&self.settings, partition_key, row_key).await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::delete_row(fl_url, partition_key, row_key).await
     }
 
     pub async fn delete_partitions(&self, partition_keys: &[&str]) -> Result<(), DataWriterError> {
-        super::execution::delete_partitions(&self.settings, TEntity::TABLE_NAME, partition_keys)
-            .await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::delete_partitions(fl_url, TEntity::TABLE_NAME, partition_keys).await
     }
 
     pub async fn get_all(&self) -> Result<Option<Vec<TEntity>>, DataWriterError> {
-        super::execution::get_all(&self.settings).await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::get_all(fl_url).await
     }
 
     pub async fn clean_table_and_bulk_insert(
         &self,
         entities: &[TEntity],
     ) -> Result<(), DataWriterError> {
-        super::execution::clean_table_and_bulk_insert(&self.settings, entities, &self.sync_period)
-            .await
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::clean_table_and_bulk_insert(fl_url, entities, &self.sync_period).await
     }
 
     pub async fn clean_partition_and_bulk_insert(
@@ -242,8 +266,9 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         partition_key: &str,
         entities: &[TEntity],
     ) -> Result<(), DataWriterError> {
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
         super::execution::clean_partition_and_bulk_insert(
-            &self.settings,
+            fl_url,
             partition_key,
             entities,
             &self.sync_period,

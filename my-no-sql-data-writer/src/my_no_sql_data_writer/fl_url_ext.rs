@@ -3,13 +3,10 @@ use my_no_sql_abstractions::DataSynchronizationPeriod;
 
 pub trait FlUrlExt {
     fn with_table_name_as_query_param(self, table_name: &str) -> FlUrl;
-
     fn append_data_sync_period(self, sync_period: &DataSynchronizationPeriod) -> FlUrl;
-
     fn with_partition_key_as_query_param(self, partition_key: &str) -> FlUrl;
     fn with_partition_keys_as_query_param(self, partition_keys: &[&str]) -> FlUrl;
     fn with_row_key_as_query_param(self, partition_key: &str) -> FlUrl;
-
     fn with_persist_as_query_param(self, persist: bool) -> FlUrl;
 }
 
