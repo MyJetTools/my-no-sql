@@ -16,6 +16,8 @@ pub struct FlUrlFactory {
     #[cfg(feature = "with-ssh")]
     pub ssh_sessions_pool: Option<Arc<SshSessionsPool>>,
     #[cfg(feature = "with-ssh")]
+    pub http_buffer_size: Option<usize>,
+    #[cfg(feature = "with-ssh")]
     pub ssh_cert_credentials:
         Option<std::collections::HashMap<String, flurl::my_ssh::SshCredentialsSettingsModel>>,
     create_table_is_called: Arc<UnsafeValue<bool>>,
@@ -37,6 +39,8 @@ impl FlUrlFactory {
             table_name,
             #[cfg(feature = "with-ssh")]
             ssh_cert_credentials: None,
+            #[cfg(feature = "with-ssh")]
+            http_buffer_size: None,
         }
     }
     #[cfg(not(feature = "with-ssh"))]
@@ -51,6 +55,10 @@ impl FlUrlFactory {
 
         if let Some(ssh_sessions_pool) = &self.ssh_sessions_pool {
             fl_url = fl_url.set_ssh_sessions_pool(ssh_sessions_pool.clone());
+        }
+
+        if let Some(http_buffer_size) = self.http_buffer_size {
+            fl_url = fl_url.set_http_buffer_size(http_buffer_size);
         }
 
         fl_url

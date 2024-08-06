@@ -95,6 +95,11 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         self.fl_url_factory.ssh_sessions_pool = Some(ssh_sessions_pool);
     }
 
+    #[cfg(feature = "with-ssh")]
+    pub fn set_http_buffer_size(&mut self, buffer_size: usize) {
+        self.fl_url_factory.http_buffer_size = Some(buffer_size);
+    }
+
     pub async fn create_table_if_not_exists(
         &self,
         params: &CreateTableParams,
