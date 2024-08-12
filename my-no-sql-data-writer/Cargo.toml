@@ -7,7 +7,7 @@ edition = "2021"
 
 
 [features]
-default = ["with-ssh"]
+default = []
 with-ssh = ["flurl/with-ssh"]
 
 [dependencies]
