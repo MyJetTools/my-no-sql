@@ -19,5 +19,11 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
 
+      - name: Test default
+        run: cargo test       
+
+      - name: Build Master-Node
+        run: cargo test --master-node
+
       - name: Build default
         run: cargo build --all-features
