@@ -169,7 +169,8 @@ mod tests {
         }"#;
 
         let time_stamp = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+        let db_row =
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -186,7 +187,8 @@ mod tests {
         }"#;
 
         let time_stamp = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+        let db_row =
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -203,7 +205,8 @@ mod tests {
             "Expires": "2019-01-01T00:00:00"
         }"#;
         let time_stamp = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+        let db_row =
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -223,7 +226,8 @@ mod tests {
 
         let time_stamp = JsonTimeStamp::now();
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+        let db_row =
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -253,7 +257,8 @@ mod tests {
         }"#;
 
         let time_stamp = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &time_stamp).unwrap();
+        let db_row =
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &time_stamp).unwrap();
 
         let mut db_rows = DbRowsContainer::new();
 
@@ -291,7 +296,7 @@ mod tests {
         }"#;
 
         let now = JsonTimeStamp::now();
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &now).unwrap();
 
         db_rows.insert(Arc::new(db_row));
 
@@ -321,7 +326,7 @@ mod tests {
 
         let now = JsonTimeStamp::now();
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &now).unwrap();
 
         db_rows.insert(Arc::new(db_row));
 
@@ -346,7 +351,7 @@ mod tests {
         }"#;
         let now = JsonTimeStamp::now();
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &now).unwrap();
 
         db_rows.insert(Arc::new(db_row));
 
@@ -370,9 +375,11 @@ mod tests {
             "RowKey": "test1",
         }"#;
 
-        let db_row =
-            DbJsonEntity::parse_into_db_row(json.as_bytes(), &JsonTimeStamp::from_date_time(now))
-                .unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(
+            json.as_bytes().into(),
+            &JsonTimeStamp::from_date_time(now),
+        )
+        .unwrap();
 
         db_rows.insert(Arc::new(db_row));
 
@@ -386,7 +393,7 @@ mod tests {
         }"#;
 
         let db_row = DbJsonEntity::parse_into_db_row(
-            raw_json.as_bytes(),
+            raw_json.as_bytes().into(),
             &JsonTimeStamp::from_date_time(now),
         )
         .unwrap();
@@ -403,7 +410,7 @@ mod tests {
         }"#;
 
         let db_row = DbJsonEntity::parse_into_db_row(
-            json_db_row.as_bytes(),
+            json_db_row.as_bytes().into(),
             &JsonTimeStamp::from_date_time(now),
         )
         .unwrap();
@@ -420,7 +427,7 @@ mod tests {
         }"#;
 
         let db_row = DbJsonEntity::parse_into_db_row(
-            raw_json.as_bytes(),
+            raw_json.as_bytes().into(),
             &JsonTimeStamp::from_date_time(now),
         )
         .unwrap();

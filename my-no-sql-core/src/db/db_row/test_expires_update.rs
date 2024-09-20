@@ -15,7 +15,8 @@ mod test {
 
         let inject_time_stamp = JsonTimeStamp::now();
         let db_row =
-            DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &inject_time_stamp).unwrap();
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &inject_time_stamp)
+                .unwrap();
 
         let new_expires = DateTimeAsMicroseconds::from_str("2020-01-02T01:02:03").unwrap();
 
@@ -25,7 +26,7 @@ mod test {
 
         db_row.write_json(&mut result_json);
 
-        let result_entity = DbJsonEntity::new(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(result_json.as_slice().into()).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "TestPk");
         assert_eq!(result_entity.get_row_key(&result_json), "TestRk");
@@ -45,7 +46,8 @@ mod test {
 
         let inject_time_stamp = JsonTimeStamp::now();
         let db_row =
-            DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &inject_time_stamp).unwrap();
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &inject_time_stamp)
+                .unwrap();
 
         let new_expires = DateTimeAsMicroseconds::from_str("2020-01-02T01:02:03").unwrap();
 
@@ -55,7 +57,7 @@ mod test {
 
         db_row.write_json(&mut result_json);
 
-        let result_entity = DbJsonEntity::new(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(result_json.as_slice().into()).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");
@@ -73,7 +75,8 @@ mod test {
 
         let inject_time_stamp = JsonTimeStamp::now();
         let db_row =
-            DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &inject_time_stamp).unwrap();
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &inject_time_stamp)
+                .unwrap();
 
         db_row.update_expires(None);
 
@@ -83,7 +86,7 @@ mod test {
 
         println!("Result: {}", std::str::from_utf8(&result_json).unwrap());
 
-        let result_entity = DbJsonEntity::new(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(result_json.as_slice().into()).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");
@@ -97,7 +100,8 @@ mod test {
 
         let inject_time_stamp = JsonTimeStamp::now();
         let db_row =
-            DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &inject_time_stamp).unwrap();
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &inject_time_stamp)
+                .unwrap();
 
         db_row.update_expires(None);
 
@@ -107,7 +111,7 @@ mod test {
 
         println!("Result: {}", std::str::from_utf8(&result_json).unwrap());
 
-        let result_entity = DbJsonEntity::new(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(result_json.as_slice().into()).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");
@@ -121,7 +125,8 @@ mod test {
 
         let inject_time_stamp = JsonTimeStamp::now();
         let db_row =
-            DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &inject_time_stamp).unwrap();
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &inject_time_stamp)
+                .unwrap();
 
         db_row.update_expires(None);
 
@@ -131,7 +136,7 @@ mod test {
 
         println!("Result: {}", std::str::from_utf8(&result_json).unwrap());
 
-        let result_entity = DbJsonEntity::new(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(result_json.as_slice().into()).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");
@@ -148,7 +153,8 @@ mod test {
         let inject_time_stamp = JsonTimeStamp::now();
 
         let db_row =
-            DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &inject_time_stamp).unwrap();
+            DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &inject_time_stamp)
+                .unwrap();
 
         db_row.update_expires(None);
 
@@ -162,7 +168,7 @@ mod test {
             result_json.len()
         );
 
-        let result_entity = DbJsonEntity::new(&result_json).unwrap();
+        let result_entity = DbJsonEntity::new(result_json.as_slice().into()).unwrap();
 
         assert_eq!(result_entity.get_partition_key(&result_json), "Pk");
         assert_eq!(result_entity.get_row_key(&result_json), "Rk");

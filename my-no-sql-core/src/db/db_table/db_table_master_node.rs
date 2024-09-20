@@ -125,7 +125,7 @@ mod tests {
             "RowKey": "test",
         }"#;
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &now).unwrap();
 
         let db_row = Arc::new(db_row);
 
@@ -149,7 +149,7 @@ mod tests {
             "RowKey": "test",
         }"#;
 
-        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &now).unwrap();
 
         let db_row = Arc::new(db_row);
 
@@ -161,7 +161,7 @@ mod tests {
             "AAA": "111"
         }"#;
 
-        let db_row2 = DbJsonEntity::parse_into_db_row(test_json.as_bytes(), &now).unwrap();
+        let db_row2 = DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &now).unwrap();
 
         let db_row2 = Arc::new(db_row2);
 
