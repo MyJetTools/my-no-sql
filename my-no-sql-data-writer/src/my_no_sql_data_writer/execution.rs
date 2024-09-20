@@ -154,8 +154,8 @@ pub async fn get_entity<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync 
     check_error(&mut response).await?;
 
     if is_ok_result(&response) {
-        let entity = TEntity::deserialize_entity(response.get_body_as_slice().await?);
-        return Ok(entity);
+        let entity = TEntity::deserialize_entity(response.get_body_as_slice().await?).unwrap();
+        return Ok(Some(entity));
     }
 
     return Ok(None);
@@ -333,8 +333,8 @@ pub async fn delete_row<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync 
     check_error(&mut response).await?;
 
     if response.get_status_code() == 200 {
-        let entity = TEntity::deserialize_entity(response.get_body_as_slice().await?);
-        return Ok(entity);
+        let entity = TEntity::deserialize_entity(response.get_body_as_slice().await?).unwrap();
+        return Ok(Some(entity));
     }
 
     return Ok(None);
@@ -559,6 +559,7 @@ mod tests {
 
     impl MyNoSqlEntity for TestEntity {
         const TABLE_NAME: &'static str = "test";
+        const LAZY_DESERIALIZATION: bool = false;
 
         fn get_partition_key(&self) -> &str {
             &self.partition_key
@@ -578,9 +579,8 @@ mod tests {
             my_no_sql_core::entity_serializer::serialize(self)
         }
 
-        fn deserialize_entity(src: &[u8]) -> Option<Self> {
-            let result: Self = my_no_sql_core::entity_serializer::deserialize(src);
-            result.into()
+        fn deserialize_entity(src: &[u8]) -> Result<Self, String> {
+            my_no_sql_core::entity_serializer::deserialize(src)
         }
     }
 

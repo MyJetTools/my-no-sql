@@ -1,5 +1,6 @@
 pub trait MyNoSqlEntity {
     const TABLE_NAME: &'static str;
+    const LAZY_DESERIALIZATION: bool;
     fn get_partition_key(&self) -> &str;
     fn get_row_key(&self) -> &str;
     fn get_time_stamp(&self) -> i64;
@@ -7,7 +8,7 @@ pub trait MyNoSqlEntity {
 
 pub trait MyNoSqlEntitySerializer: Sized {
     fn serialize_entity(&self) -> Vec<u8>;
-    fn deserialize_entity(src: &[u8]) -> Option<Self>;
+    fn deserialize_entity(src: &[u8]) -> Result<Self, String>;
 }
 
 pub trait GetMyNoSqlEntity {

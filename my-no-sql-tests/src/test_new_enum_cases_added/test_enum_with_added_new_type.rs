@@ -1,4 +1,5 @@
 use my_no_sql_macros::*;
+
 use serde::*;
 
 #[enum_of_my_no_sql_entity(table_name:"Test", generate_unwraps)]
@@ -45,6 +46,10 @@ mod tests {
 
         let model_ver1 = MyNoSqlEnumEntityTestVer1::deserialize_entity(result.as_slice());
 
-        assert!(model_ver1.is_none())
+        assert!(model_ver1.is_err());
+
+        if let Err(err) = model_ver1 {
+            println!("{}", err);
+        }
     }
 }

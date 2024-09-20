@@ -1,28 +1,30 @@
 use std::sync::Arc;
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use rust_extensions::{
     events_loop::{EventsLoop, EventsLoopTick},
     ApplicationStates,
 };
 
-use super::MyNoSqlDataReaderCallBacks;
+use super::{LazyMyNoSqlEntity, MyNoSqlDataReaderCallBacks};
 
-pub enum PusherEvents<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
-    InsertedOrReplaced(String, Vec<Arc<TMyNoSqlEntity>>),
-    Deleted(String, Vec<Arc<TMyNoSqlEntity>>),
+pub enum PusherEvents<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
+> {
+    InsertedOrReplaced(String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>),
+    Deleted(String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>),
 }
 
 pub struct MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
 {
     events_loop: EventsLoop<PusherEvents<TMyNoSqlEntity>>,
 }
 
 impl<TMyNoSqlEntity> MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
 {
     pub async fn new<
         TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
@@ -40,14 +42,22 @@ where
         Self { events_loop }
     }
 
-    pub fn inserted_or_replaced(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
+    pub fn inserted_or_replaced(
+        &self,
+        partition_key: &str,
+        entities: Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>,
+    ) {
         self.events_loop.send(PusherEvents::InsertedOrReplaced(
             partition_key.to_string(),
             entities,
         ));
     }
 
-    pub fn deleted(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
+    pub fn deleted(
+        &self,
+        partition_key: &str,
+        entities: Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>,
+    ) {
         self.events_loop
             .send(PusherEvents::Deleted(partition_key.to_string(), entities));
     }
@@ -57,23 +67,31 @@ where
 impl<TMyNoSqlEntity> MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>
     for MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
 {
-    async fn inserted_or_replaced(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
+    async fn inserted_or_replaced(
+        &self,
+        partition_key: &str,
+        entities: Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>,
+    ) {
         self.events_loop.send(PusherEvents::InsertedOrReplaced(
             partition_key.to_string(),
             entities,
         ));
     }
 
-    async fn deleted(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
+    async fn deleted(
+        &self,
+        partition_key: &str,
+        entities: Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>,
+    ) {
         self.events_loop
             .send(PusherEvents::Deleted(partition_key.to_string(), entities));
     }
 }
 
 pub struct MyNoSqlDataReaderCallBacksSender<
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
     TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 > {
     callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
@@ -81,7 +99,7 @@ pub struct MyNoSqlDataReaderCallBacksSender<
 }
 
 impl<
-        TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+        TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
         TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
     > MyNoSqlDataReaderCallBacksSender<TMyNoSqlEntity, TMyNoSqlDataReaderCallBacks>
 {
@@ -92,7 +110,7 @@ impl<
 
 #[async_trait::async_trait]
 impl<
-        TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+        TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
         TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
     > EventsLoopTick<PusherEvents<TMyNoSqlEntity>>
     for MyNoSqlDataReaderCallBacksSender<TMyNoSqlEntity, TMyNoSqlDataReaderCallBacks>

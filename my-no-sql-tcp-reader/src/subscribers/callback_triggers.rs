@@ -1,16 +1,21 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::collections::BTreeMap;
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 
-use super::MyNoSqlDataReaderCallBacks;
+use super::{LazyMyNoSqlEntity, MyNoSqlDataReaderCallBacks};
 
 pub async fn trigger_table_difference<
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
     TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
     callbacks: &TMyNoSqlDataReaderCallBacks,
-    before: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
-    now_entities: &BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
+    before: Option<
+        BTreeMap<String, BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
+    >,
+    now_entities: &BTreeMap<
+        String,
+        BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>,
+    >,
 ) {
     match before {
         Some(before) => {
@@ -23,11 +28,14 @@ pub async fn trigger_table_difference<
 }
 
 pub async fn trigger_brand_new_table<
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
     TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
     callbacks: &TMyNoSqlDataReaderCallBacks,
-    now_entities: &BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
+    now_entities: &BTreeMap<
+        String,
+        BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>,
+    >,
 ) {
     for (partition_key, now_partition) in now_entities {
         let mut added_entities = Vec::new();
@@ -44,12 +52,15 @@ pub async fn trigger_brand_new_table<
 }
 
 pub async fn trigger_old_and_new_table_difference<
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
     TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
     callbacks: &TMyNoSqlDataReaderCallBacks,
-    mut before: BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
-    now_entities: &BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
+    mut before: BTreeMap<String, BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
+    now_entities: &BTreeMap<
+        String,
+        BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>,
+    >,
 ) {
     for (now_partition_key, now_partition) in now_entities {
         let before_partition = before.remove(now_partition_key);
@@ -79,13 +90,13 @@ pub async fn trigger_old_and_new_table_difference<
 }
 
 pub async fn trigger_partition_difference<
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
     TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
     callbacks: &TMyNoSqlDataReaderCallBacks,
     partition_key: &str,
-    before_partition: Option<BTreeMap<String, Arc<TMyNoSqlEntity>>>,
-    now_partition: &BTreeMap<String, Arc<TMyNoSqlEntity>>,
+    before_partition: Option<BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
+    now_partition: &BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>,
 ) {
     match before_partition {
         Some(mut before_partition) => {
@@ -125,12 +136,12 @@ pub async fn trigger_partition_difference<
 }
 
 pub async fn trigger_brand_new_partition<
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
     TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
     callbacks: &TMyNoSqlDataReaderCallBacks,
     partition_key: &str,
-    partition: &BTreeMap<String, Arc<TMyNoSqlEntity>>,
+    partition: &BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>,
 ) {
     let mut inserted_or_replaced = Vec::new();
     for entity in partition.values() {
@@ -146,17 +157,18 @@ pub async fn trigger_brand_new_partition<
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, sync::Arc};
+    use std::collections::BTreeMap;
 
     use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
     use serde_derive::{Deserialize, Serialize};
     use tokio::sync::Mutex;
 
-    use crate::subscribers::MyNoSqlDataReaderCallBacks;
+    use crate::subscribers::{LazyMyNoSqlEntity, MyNoSqlDataReaderCallBacks};
 
     struct TestCallbacksInner {
-        inserted_or_replaced_entities: BTreeMap<String, Vec<Arc<TestRow>>>,
-        deleted: BTreeMap<String, Vec<Arc<TestRow>>>,
+        inserted_or_replaced_entities:
+            BTreeMap<String, Vec<LazyMyNoSqlEntity<TestRow>>>,
+        deleted: BTreeMap<String, Vec<LazyMyNoSqlEntity<TestRow>>>,
     }
 
     pub struct TestCallbacks {
@@ -176,7 +188,11 @@ mod tests {
 
     #[async_trait::async_trait]
     impl MyNoSqlDataReaderCallBacks<TestRow> for TestCallbacks {
-        async fn inserted_or_replaced(&self, partition_key: &str, entities: Vec<Arc<TestRow>>) {
+        async fn inserted_or_replaced(
+            &self,
+            partition_key: &str,
+            entities: Vec<LazyMyNoSqlEntity<TestRow>>,
+        ) {
             let mut write_access = self.data.lock().await;
             match write_access
                 .inserted_or_replaced_entities
@@ -194,7 +210,11 @@ mod tests {
             }
         }
 
-        async fn deleted(&self, partition_key: &str, entities: Vec<Arc<TestRow>>) {
+        async fn deleted(
+            &self,
+            partition_key: &str,
+            entities: Vec<LazyMyNoSqlEntity<TestRow>>,
+        ) {
             let mut write_access = self.data.lock().await;
             match write_access.deleted.get_mut(partition_key) {
                 Some(db_partition) => {
@@ -229,6 +249,7 @@ mod tests {
 
     impl MyNoSqlEntity for TestRow {
         const TABLE_NAME: &'static str = "Test";
+        const LAZY_DESERIALIZATION: bool = false;
 
         fn get_partition_key(&self) -> &str {
             self.partition_key.as_str()
@@ -246,9 +267,8 @@ mod tests {
             my_no_sql_core::entity_serializer::serialize(self)
         }
 
-        fn deserialize_entity(src: &[u8]) -> Option<Self> {
-            let result = my_no_sql_core::entity_serializer::deserialize(src);
-            Some(result)
+        fn deserialize_entity(src: &[u8]) -> Result<Self, String> {
+            my_no_sql_core::entity_serializer::deserialize(src)
         }
     }
 
@@ -256,15 +276,16 @@ mod tests {
     pub async fn test_we_had_data_in_table_and_new_table_is_empty() {
         let test_callback = TestCallbacks::new();
 
-        let mut before_rows = BTreeMap::new();
+        let mut before_rows: BTreeMap<String, LazyMyNoSqlEntity<TestRow>> =
+            BTreeMap::new();
 
         before_rows.insert(
             "RK1".to_string(),
-            Arc::new(TestRow::new("PK1".to_string(), "RK1".to_string(), 1)),
+            TestRow::new("PK1".to_string(), "RK1".to_string(), 1).into(),
         );
         before_rows.insert(
             "RK2".to_string(),
-            Arc::new(TestRow::new("PK1".to_string(), "RK2".to_string(), 1)),
+            TestRow::new("PK1".to_string(), "RK2".to_string(), 1).into(),
         );
 
         let mut before = BTreeMap::new();
@@ -284,15 +305,16 @@ mod tests {
     pub async fn test_brand_new_table() {
         let test_callback = TestCallbacks::new();
 
-        let mut after_rows = BTreeMap::new();
+        let mut after_rows: BTreeMap<String, LazyMyNoSqlEntity<TestRow>> =
+            BTreeMap::new();
 
         after_rows.insert(
             "RK1".to_string(),
-            Arc::new(TestRow::new("PK1".to_string(), "RK1".to_string(), 1)),
+            TestRow::new("PK1".to_string(), "RK1".to_string(), 1).into(),
         );
         after_rows.insert(
             "RK2".to_string(),
-            Arc::new(TestRow::new("PK1".to_string(), "RK2".to_string(), 1)),
+            TestRow::new("PK1".to_string(), "RK2".to_string(), 1).into(),
         );
 
         let mut after = BTreeMap::new();
@@ -316,24 +338,26 @@ mod tests {
     pub async fn test_we_have_updates_in_table() {
         let test_callback = TestCallbacks::new();
 
-        let mut before_partition = BTreeMap::new();
+        let mut before_partition: BTreeMap<String, LazyMyNoSqlEntity<TestRow>> =
+            BTreeMap::new();
 
         before_partition.insert(
             "RK1".to_string(),
-            Arc::new(TestRow::new("PK1".to_string(), "RK1".to_string(), 1)),
+            TestRow::new("PK1".to_string(), "RK1".to_string(), 1).into(),
         );
         before_partition.insert(
             "RK2".to_string(),
-            Arc::new(TestRow::new("PK1".to_string(), "RK2".to_string(), 1)),
+            TestRow::new("PK1".to_string(), "RK2".to_string(), 1).into(),
         );
 
         let mut before = BTreeMap::new();
         before.insert("PK1".to_string(), before_partition);
 
-        let mut after_partition = BTreeMap::new();
+        let mut after_partition: BTreeMap<String, LazyMyNoSqlEntity<TestRow>> =
+            BTreeMap::new();
         after_partition.insert(
             "RK2".to_string(),
-            Arc::new(TestRow::new("PK1".to_string(), "RK2".to_string(), 2)),
+            TestRow::new("PK1".to_string(), "RK2".to_string(), 2).into(),
         );
 
         let mut after = BTreeMap::new();

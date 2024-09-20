@@ -1,13 +1,16 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 
 use crate::MyNoSqlDataReaderCallBacks;
 
 use super::{GetEntitiesBuilder, GetEntityBuilder};
 
 #[async_trait::async_trait]
-pub trait MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub trait MyNoSqlDataReader<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+>
+{
     async fn get_table_snapshot_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>>;
 
     async fn get_by_partition_key(
@@ -61,6 +64,7 @@ pub trait MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'stati
 
     async fn get_enum_case_models_by_partition_key_as_vec<
         T: MyNoSqlEntity
+            + MyNoSqlEntitySerializer
             + my_no_sql_abstractions::GetMyNoSqlEntitiesByPartitionKey
             + From<Arc<TMyNoSqlEntity>>
             + Sync

@@ -1,13 +1,15 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use rust_extensions::ApplicationStates;
 
 use crate::DataReaderEntitiesSet;
 
-use super::{MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderCallBacksPusher};
+use super::{LazyMyNoSqlEntity, MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderCallBacksPusher};
 
-pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
+pub struct MyNoSqlDataReaderData<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
+> {
     entities: DataReaderEntitiesSet<TMyNoSqlEntity>,
     callbacks: Option<Arc<MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>>>,
     app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
@@ -15,7 +17,7 @@ pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + '
 
 impl<TMyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
 {
     pub async fn new(
         table_name: &'static str,
@@ -40,7 +42,10 @@ where
         self.callbacks = Some(Arc::new(pusher));
     }
 
-    pub async fn init_table(&mut self, data: BTreeMap<String, Vec<TMyNoSqlEntity>>) {
+    pub async fn init_table(
+        &mut self,
+        data: BTreeMap<String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
+    ) {
         let init_table_result = self.entities.init_table(data);
 
         if let Some(callbacks) = self.callbacks.as_ref() {
@@ -56,7 +61,7 @@ where
     pub async fn init_partition(
         &mut self,
         partition_key: &str,
-        src_entities: BTreeMap<String, Vec<TMyNoSqlEntity>>,
+        src_entities: BTreeMap<String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
     ) {
         //let callbacks = self.callbacks.clone();
 
@@ -73,7 +78,10 @@ where
         }
     }
 
-    pub fn update_rows(&mut self, src_data: BTreeMap<String, Vec<TMyNoSqlEntity>>) {
+    pub fn update_rows(
+        &mut self,
+        src_data: BTreeMap<String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
+    ) {
         self.entities.update_rows(src_data, &self.callbacks);
     }
 
@@ -82,15 +90,29 @@ where
     }
 
     pub fn get_table_snapshot(
-        &self,
+        &mut self,
     ) -> Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>> {
-        let entities = self.entities.as_ref()?;
+        let entities = self.entities.as_mut()?;
+        if entities.len() == 0 {
+            return None;
+        }
 
-        return Some(entities.clone());
+        let mut result = BTreeMap::new();
+        for (partition_key, entities) in entities.iter_mut() {
+            let mut to_insert = BTreeMap::new();
+
+            for (row_key, entity) in entities.iter_mut() {
+                to_insert.insert(row_key.clone(), entity.get());
+            }
+
+            result.insert(partition_key.clone(), to_insert);
+        }
+
+        return Some(result);
     }
 
-    pub fn get_table_snapshot_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
-        let entities = self.entities.as_ref()?;
+    pub fn get_table_snapshot_as_vec(&mut self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+        let entities = self.entities.as_mut()?;
 
         if entities.len() == 0 {
             return None;
@@ -98,49 +120,60 @@ where
 
         let mut result = Vec::new();
 
-        for partition in entities.values() {
-            for entity in partition.values() {
-                result.push(entity.clone());
+        for partition in entities.values_mut() {
+            for entity in partition.values_mut() {
+                result.push(entity.get());
             }
         }
 
         Some(result)
     }
 
-    pub fn get_entity(&self, partition_key: &str, row_key: &str) -> Option<Arc<TMyNoSqlEntity>> {
-        let entities = self.entities.as_ref()?;
+    pub fn get_entity(
+        &mut self,
+        partition_key: &str,
+        row_key: &str,
+    ) -> Option<Arc<TMyNoSqlEntity>> {
+        let entities = self.entities.as_mut()?;
 
-        let partition = entities.get(partition_key)?;
+        let partition = entities.get_mut(partition_key)?;
 
-        let row = partition.get(row_key)?;
+        let row = partition.get_mut(row_key)?;
 
-        Some(row.clone())
+        Some(row.get())
     }
 
     pub fn get_by_partition(
-        &self,
+        &mut self,
         partition_key: &str,
     ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
-        let entities = self.entities.as_ref()?;
+        let entities = self.entities.as_mut()?;
 
-        let partition = entities.get(partition_key)?;
-
-        Some(partition.clone())
-    }
-
-    pub fn get_by_partition_with_filter(
-        &self,
-        partition_key: &str,
-        filter: impl Fn(&TMyNoSqlEntity) -> bool,
-    ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
-        let entities = self.entities.as_ref()?;
-
-        let partition = entities.get(partition_key)?;
+        let partition = entities.get_mut(partition_key)?;
 
         let mut result = BTreeMap::new();
 
-        for db_row in partition.values() {
-            if filter(db_row) {
+        for itm in partition.iter_mut() {
+            result.insert(itm.0.clone(), itm.1.get());
+        }
+
+        Some(result)
+    }
+
+    pub fn get_by_partition_with_filter(
+        &mut self,
+        partition_key: &str,
+        filter: impl Fn(&TMyNoSqlEntity) -> bool,
+    ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
+        let entities = self.entities.as_mut()?;
+
+        let partition = entities.get_mut(partition_key)?;
+
+        let mut result = BTreeMap::new();
+
+        for db_row in partition.values_mut() {
+            let db_row = db_row.get();
+            if filter(&db_row) {
                 result.insert(db_row.get_row_key().to_string(), db_row.clone());
             }
         }
@@ -160,10 +193,13 @@ where
         entities.contains_key(partition_key)
     }
 
-    pub fn get_by_partition_as_vec(&self, partition_key: &str) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
-        let entities = self.entities.as_ref()?;
+    pub fn get_by_partition_as_vec(
+        &mut self,
+        partition_key: &str,
+    ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+        let entities = self.entities.as_mut()?;
 
-        let partition = entities.get(partition_key)?;
+        let partition = entities.get_mut(partition_key)?;
 
         if partition.len() == 0 {
             return None;
@@ -171,21 +207,21 @@ where
 
         let mut result = Vec::with_capacity(partition.len());
 
-        for db_row in partition.values() {
-            result.push(db_row.clone());
+        for db_row in partition.values_mut() {
+            result.push(db_row.get());
         }
 
         Some(result)
     }
 
     pub fn get_by_partition_as_vec_with_filter(
-        &self,
+        &mut self,
         partition_key: &str,
         filter: impl Fn(&TMyNoSqlEntity) -> bool,
     ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
-        let entities = self.entities.as_ref()?;
+        let entities = self.entities.as_mut()?;
 
-        let partition = entities.get(partition_key)?;
+        let partition = entities.get_mut(partition_key)?;
 
         if partition.len() == 0 {
             return None;
@@ -193,7 +229,8 @@ where
 
         let mut result = Vec::with_capacity(partition.len());
 
-        for db_row in partition.values() {
+        for db_row in partition.values_mut() {
+            let db_row = db_row.get();
             if filter(db_row.as_ref()) {
                 result.push(db_row.clone());
             }

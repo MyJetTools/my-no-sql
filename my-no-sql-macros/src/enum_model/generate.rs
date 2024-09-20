@@ -50,6 +50,7 @@ pub fn generate(
         impl my_no_sql_sdk::abstractions::MyNoSqlEntity for #struct_name {
 
         const TABLE_NAME: &'static str = "";
+        const LAZY_DESERIALIZATION: bool = true;
 
 
         fn get_partition_key(&self) -> &str {

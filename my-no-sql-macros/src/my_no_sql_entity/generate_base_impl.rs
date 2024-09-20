@@ -18,6 +18,8 @@ pub fn generate_base_impl(
 
             const TABLE_NAME: &'static str = #table_name;
 
+            const LAZY_DESERIALIZATION: bool = false;
+
             fn get_partition_key(&self) -> &str {
                 &self.partition_key
             }

@@ -1,15 +1,19 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 
-use crate::subscribers::MyNoSqlDataReaderCallBacksPusher;
+use crate::subscribers::{LazyMyNoSqlEntity, MyNoSqlDataReaderCallBacksPusher};
 
-pub struct DataReaderEntitiesSet<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
-    entities: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
+pub struct DataReaderEntitiesSet<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
+> {
+    entities: Option<BTreeMap<String, BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>>>,
     table_name: &'static str,
 }
 
-impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> DataReaderEntitiesSet<TMyNoSqlEntity> {
+impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static>
+    DataReaderEntitiesSet<TMyNoSqlEntity>
+{
     pub fn new(table_name: &'static str) -> Self {
         Self {
             entities: None,
@@ -21,13 +25,21 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> DataReaderEntitiesSe
         self.entities.is_some()
     }
 
-    pub fn as_ref(&self) -> Option<&BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>> {
+    pub fn as_ref(
+        &self,
+    ) -> Option<&BTreeMap<String, BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>>> {
         self.entities.as_ref()
+    }
+
+    pub fn as_mut(
+        &mut self,
+    ) -> Option<&mut BTreeMap<String, BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>>> {
+        self.entities.as_mut()
     }
 
     fn init_and_get_table(
         &mut self,
-    ) -> &mut BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>> {
+    ) -> &mut BTreeMap<String, BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>> {
         if self.entities.is_none() {
             println!("MyNoSqlTcpReader table {} is initialized", self.table_name);
             self.entities = Some(BTreeMap::new());
@@ -39,9 +51,9 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> DataReaderEntitiesSe
 
     pub fn init_table<'s>(
         &'s mut self,
-        data: BTreeMap<String, Vec<TMyNoSqlEntity>>,
+        data: BTreeMap<String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
     ) -> InitTableResult<'s, TMyNoSqlEntity> {
-        let mut new_table: BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>> =
+        let mut new_table: BTreeMap<String, BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>> =
             BTreeMap::new();
 
         for (partition_key, src_entities_by_partition) in data {
@@ -50,7 +62,6 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> DataReaderEntitiesSe
             let by_partition = new_table.get_mut(partition_key.as_str()).unwrap();
 
             for entity in src_entities_by_partition {
-                let entity = Arc::new(entity);
                 by_partition.insert(entity.get_row_key().to_string(), entity);
             }
         }
@@ -66,7 +77,7 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> DataReaderEntitiesSe
     pub fn init_partition<'s>(
         &'s mut self,
         partition_key: &str,
-        src_entities: BTreeMap<String, Vec<TMyNoSqlEntity>>,
+        src_entities: BTreeMap<String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
     ) -> InitPartitionResult<'s, TMyNoSqlEntity> {
         let entities = self.init_and_get_table();
 
@@ -76,7 +87,7 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> DataReaderEntitiesSe
 
         for (row_key, entities) in src_entities {
             for entity in entities {
-                new_partition.insert(row_key.clone(), Arc::new(entity));
+                new_partition.insert(row_key.clone(), entity);
             }
         }
 
@@ -90,7 +101,7 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> DataReaderEntitiesSe
 
     pub fn update_rows(
         &mut self,
-        src_data: BTreeMap<String, Vec<TMyNoSqlEntity>>,
+        src_data: BTreeMap<String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
         callbacks: &Option<Arc<MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>>>,
     ) {
         let entities = self.init_and_get_table();
@@ -109,7 +120,6 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> DataReaderEntitiesSe
             let by_partition = entities.get_mut(partition_key.as_str()).unwrap();
 
             for entity in src_entities {
-                let entity = Arc::new(entity);
                 if let Some(updates) = updates.as_mut() {
                     updates.push(entity.clone());
                 }
@@ -179,12 +189,18 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> DataReaderEntitiesSe
     }
 }
 
-pub struct InitTableResult<'s, TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
-    pub table_now: &'s BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
-    pub table_before: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
+pub struct InitTableResult<
+    's,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
+> {
+    pub table_now: &'s BTreeMap<String, BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
+    pub table_before: Option<BTreeMap<String, BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>>>,
 }
 
-pub struct InitPartitionResult<'s, TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
-    pub partition_before: &'s BTreeMap<String, Arc<TMyNoSqlEntity>>,
-    pub partition_now: Option<BTreeMap<String, Arc<TMyNoSqlEntity>>>,
+pub struct InitPartitionResult<
+    's,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'static,
+> {
+    pub partition_before: &'s BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>,
+    pub partition_now: Option<BTreeMap<String, LazyMyNoSqlEntity<TMyNoSqlEntity>>>,
 }

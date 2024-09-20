@@ -26,3 +26,5 @@ pub use my_no_sql_data_reader_mock::*;
 mod my_no_sql_data_reader_mock_inner;
 #[cfg(feature = "mocks")]
 pub use my_no_sql_data_reader_mock_inner::*;
+mod entity_with_lazy_deserialization;
+pub use entity_with_lazy_deserialization::*;

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use super::{super::my_no_sql_data_reader_tcp::MyNoSqlDataReaderInner, GetEntitiesBuilderInner};
@@ -8,13 +8,17 @@ use super::{super::my_no_sql_data_reader_tcp::MyNoSqlDataReaderInner, GetEntitie
 #[cfg(feature = "mocks")]
 use super::GetEntitiesBuilderMock;
 
-pub enum GetEntitiesBuilder<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub enum GetEntitiesBuilder<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
     Inner(GetEntitiesBuilderInner<TMyNoSqlEntity>),
     #[cfg(feature = "mocks")]
     Mock(GetEntitiesBuilderMock<TMyNoSqlEntity>),
 }
 
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> GetEntitiesBuilder<TMyNoSqlEntity> {
+impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static>
+    GetEntitiesBuilder<TMyNoSqlEntity>
+{
     pub fn new(partition_key: String, inner: Arc<MyNoSqlDataReaderInner<TMyNoSqlEntity>>) -> Self {
         Self::Inner(GetEntitiesBuilderInner::new(partition_key, inner))
     }

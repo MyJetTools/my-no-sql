@@ -1,18 +1,20 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use my_no_sql_tcp_shared::sync_to_main::UpdateEntityStatisticsData;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use super::super::my_no_sql_data_reader_tcp::MyNoSqlDataReaderInner;
 
-pub struct GetEntitiesBuilderInner<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub struct GetEntitiesBuilderInner<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
     partition_key: String,
     update_statistic_data: UpdateEntityStatisticsData,
     inner: Arc<MyNoSqlDataReaderInner<TMyNoSqlEntity>>,
 }
 
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
+impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static>
     GetEntitiesBuilderInner<TMyNoSqlEntity>
 {
     pub fn new(partition_key: String, inner: Arc<MyNoSqlDataReaderInner<TMyNoSqlEntity>>) -> Self {
@@ -41,7 +43,7 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
 
     pub async fn get_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         let db_rows = {
-            let reader = self.inner.get_data().read().await;
+            let mut reader = self.inner.get_data().lock().await;
             reader.get_by_partition_as_vec(self.partition_key.as_str())
         }?;
 
@@ -63,7 +65,7 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
         filter: impl Fn(&TMyNoSqlEntity) -> bool,
     ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         let db_rows = {
-            let reader = self.inner.get_data().read().await;
+            let mut reader = self.inner.get_data().lock().await;
             reader.get_by_partition_as_vec_with_filter(&self.partition_key, filter)
         }?;
 
@@ -82,7 +84,7 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
 
     pub async fn get_as_btree_map(&self) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
         let db_rows = {
-            let reader = self.inner.get_data().read().await;
+            let mut reader = self.inner.get_data().lock().await;
             reader.get_by_partition(&self.partition_key)
         }?;
 
@@ -104,7 +106,7 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
         filter: impl Fn(&TMyNoSqlEntity) -> bool,
     ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
         let db_rows = {
-            let reader = self.inner.get_data().read().await;
+            let mut reader = self.inner.get_data().lock().await;
             reader.get_by_partition_with_filter(&self.partition_key, filter)
         }?;
 

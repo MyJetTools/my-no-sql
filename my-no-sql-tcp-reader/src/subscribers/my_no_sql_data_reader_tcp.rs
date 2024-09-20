@@ -6,20 +6,24 @@ use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
 use rust_extensions::{array_of_bytes_iterator::SliceIterator, ApplicationStates, StrOrString};
 use serde::de::DeserializeOwned;
-use tokio::sync::RwLock;
+use tokio::sync::Mutex;
 
 use super::{
-    GetEntitiesBuilder, GetEntityBuilder, MyNoSqlDataReader, MyNoSqlDataReaderCallBacks,
-    MyNoSqlDataReaderData, UpdateEvent,
+    EntityRawData, GetEntitiesBuilder, GetEntityBuilder, LazyMyNoSqlEntity, MyNoSqlDataReader,
+    MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderData, UpdateEvent,
 };
 
-pub struct MyNoSqlDataReaderInner<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
-    data: RwLock<MyNoSqlDataReaderData<TMyNoSqlEntity>>,
+pub struct MyNoSqlDataReaderInner<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
+    data: Mutex<MyNoSqlDataReaderData<TMyNoSqlEntity>>,
     sync_handler: Arc<SyncToMainNodeHandler>,
 }
 
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> MyNoSqlDataReaderInner<TMyNoSqlEntity> {
-    pub fn get_data(&self) -> &RwLock<MyNoSqlDataReaderData<TMyNoSqlEntity>> {
+impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static>
+    MyNoSqlDataReaderInner<TMyNoSqlEntity>
+{
+    pub fn get_data(&self) -> &Mutex<MyNoSqlDataReaderData<TMyNoSqlEntity>> {
         &self.data
     }
 
@@ -28,7 +32,9 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> MyNoSqlDataReaderInn
     }
 }
 
-pub struct MyNoSqlDataReaderTcp<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub struct MyNoSqlDataReaderTcp<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
     inner: Arc<MyNoSqlDataReaderInner<TMyNoSqlEntity>>,
 }
 
@@ -42,7 +48,7 @@ where
     ) -> Self {
         Self {
             inner: Arc::new(MyNoSqlDataReaderInner {
-                data: RwLock::new(
+                data: Mutex::new(
                     MyNoSqlDataReaderData::new(TMyNoSqlEntity::TABLE_NAME, app_states).await,
                 ),
                 sync_handler,
@@ -53,12 +59,12 @@ where
     pub async fn get_table_snapshot(
         &self,
     ) -> Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>> {
-        let reader = self.inner.data.read().await;
+        let mut reader = self.inner.data.lock().await;
         return reader.get_table_snapshot();
     }
 
     pub async fn get_table_snapshot_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
-        let reader = self.inner.data.read().await;
+        let mut reader = self.inner.data.lock().await;
         reader.get_table_snapshot_as_vec()
     }
 
@@ -66,7 +72,7 @@ where
         &self,
         partition_key: &str,
     ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
-        let reader = self.inner.data.read().await;
+        let mut reader = self.inner.data.lock().await;
         reader.get_by_partition(partition_key)
     }
 
@@ -74,7 +80,7 @@ where
         &self,
         partition_key: &str,
     ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
-        let reader = self.inner.data.read().await;
+        let mut reader = self.inner.data.lock().await;
         reader.get_by_partition_as_vec(partition_key)
     }
 
@@ -83,7 +89,7 @@ where
         partition_key: &str,
         row_key: &str,
     ) -> Option<Arc<TMyNoSqlEntity>> {
-        let reader = self.inner.data.read().await;
+        let mut reader = self.inner.data.lock().await;
         reader.get_entity(partition_key, row_key)
     }
 
@@ -103,12 +109,14 @@ where
     }
 
     pub async fn has_partition(&self, partition_key: &str) -> bool {
-        let reader: tokio::sync::RwLockReadGuard<'_, MyNoSqlDataReaderData<TMyNoSqlEntity>> =
-            self.inner.data.read().await;
+        let reader = self.inner.data.lock().await;
         reader.has_partition(partition_key)
     }
 
-    pub fn deserialize_array(&self, data: &[u8]) -> BTreeMap<String, Vec<TMyNoSqlEntity>> {
+    pub fn deserialize_array(
+        &self,
+        data: &[u8],
+    ) -> BTreeMap<String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>> {
         let slice_iterator = SliceIterator::new(data);
 
         let mut json_array_iterator = JsonArrayIterator::new(slice_iterator);
@@ -126,17 +134,34 @@ where
 
             let db_entity_data = db_entity.unwrap();
 
-            let el =
-                TMyNoSqlEntity::deserialize_entity(db_entity_data.as_bytes(&json_array_iterator));
+            let item_to_insert = if TMyNoSqlEntity::LAZY_DESERIALIZATION {
+                let data = db_entity_data.as_bytes(&json_array_iterator).to_vec();
+                let db_json_entity =
+                    my_no_sql_core::db_json_entity::DbJsonEntity::from_slice(&data).unwrap();
 
-            if let Some(el) = el {
-                let partition_key = el.get_partition_key();
-                if !result.contains_key(partition_key) {
-                    result.insert(partition_key.to_string(), Vec::new());
-                }
+                LazyMyNoSqlEntity::Raw(
+                    EntityRawData {
+                        db_json_entity,
+                        data,
+                    }
+                    .into(),
+                )
+            } else {
+                LazyMyNoSqlEntity::Deserialized(
+                    TMyNoSqlEntity::deserialize_entity(
+                        db_entity_data.as_bytes(&json_array_iterator),
+                    )
+                    .unwrap()
+                    .into(),
+                )
+            };
 
-                result.get_mut(partition_key).unwrap().push(el);
+            let partition_key = item_to_insert.get_partition_key();
+            if !result.contains_key(partition_key) {
+                result.insert(partition_key.to_string(), Vec::new());
             }
+
+            result.get_mut(partition_key).unwrap().push(item_to_insert);
         }
 
         result
@@ -221,26 +246,26 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> Upda
     async fn init_table(&self, data: Vec<u8>) {
         let data = self.deserialize_array(data.as_slice());
 
-        let mut write_access = self.inner.data.write().await;
+        let mut write_access = self.inner.data.lock().await;
         write_access.init_table(data).await;
     }
 
     async fn init_partition(&self, partition_key: &str, data: Vec<u8>) {
         let data = self.deserialize_array(data.as_slice());
 
-        let mut write_access = self.inner.data.write().await;
+        let mut write_access = self.inner.data.lock().await;
         write_access.init_partition(partition_key, data).await;
     }
 
     async fn update_rows(&self, data: Vec<u8>) {
         let data = self.deserialize_array(data.as_slice());
 
-        let mut write_access = self.inner.data.write().await;
+        let mut write_access = self.inner.data.lock().await;
         write_access.update_rows(data);
     }
 
     async fn delete_rows(&self, rows_to_delete: Vec<my_no_sql_tcp_shared::DeleteRowTcpContract>) {
-        let mut write_access = self.inner.data.write().await;
+        let mut write_access = self.inner.data.lock().await;
         write_access.delete_rows(rows_to_delete);
     }
 }
@@ -292,7 +317,7 @@ where
     async fn wait_until_first_data_arrives(&self) {
         loop {
             {
-                let reader = self.inner.data.read().await;
+                let reader = self.inner.data.lock().await;
                 if reader.has_entities_at_all().await {
                     return;
                 }
@@ -308,7 +333,7 @@ where
         &self,
         callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
     ) {
-        let mut write_access = self.inner.data.write().await;
+        let mut write_access = self.inner.data.lock().await;
         write_access.assign_callback(callbacks).await;
     }
 }

@@ -1,19 +1,22 @@
 use std::sync::Arc;
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use my_no_sql_tcp_shared::sync_to_main::UpdateEntityStatisticsData;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use super::super::my_no_sql_data_reader_tcp::MyNoSqlDataReaderInner;
 
-pub struct GetEntityBuilderInner<'s, TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub struct GetEntityBuilderInner<
+    's,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
     partition_key: &'s str,
     row_key: &'s str,
     update_statistic_data: UpdateEntityStatisticsData,
     inner: Arc<MyNoSqlDataReaderInner<TMyNoSqlEntity>>,
 }
 
-impl<'s, TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
+impl<'s, TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static>
     GetEntityBuilderInner<'s, TMyNoSqlEntity>
 {
     pub fn new(
@@ -47,7 +50,7 @@ impl<'s, TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
 
     pub async fn execute(&self) -> Option<Arc<TMyNoSqlEntity>> {
         let result = {
-            let reader = self.inner.get_data().read().await;
+            let mut reader = self.inner.get_data().lock().await;
             reader.get_entity(self.partition_key, self.row_key)
         };
 

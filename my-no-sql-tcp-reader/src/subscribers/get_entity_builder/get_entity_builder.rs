@@ -1,18 +1,21 @@
 use std::sync::Arc;
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 #[cfg(feature = "mocks")]
 use super::GetEntityBuilderMock;
 use super::{super::my_no_sql_data_reader_tcp::MyNoSqlDataReaderInner, GetEntityBuilderInner};
-pub enum GetEntityBuilder<'s, TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub enum GetEntityBuilder<
+    's,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
     Inner(GetEntityBuilderInner<'s, TMyNoSqlEntity>),
     #[cfg(feature = "mocks")]
     Mock(GetEntityBuilderMock<'s, TMyNoSqlEntity>),
 }
 
-impl<'s, TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
+impl<'s, TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static>
     GetEntityBuilder<'s, TMyNoSqlEntity>
 {
     pub fn new(

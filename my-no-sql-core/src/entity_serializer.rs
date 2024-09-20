@@ -12,14 +12,14 @@ where
     serde_json::to_vec(&entity).unwrap()
 }
 
-pub fn deserialize<TMyNoSqlEntity>(data: &[u8]) -> TMyNoSqlEntity
+pub fn deserialize<TMyNoSqlEntity>(data: &[u8]) -> Result<TMyNoSqlEntity, String>
 where
     TMyNoSqlEntity: MyNoSqlEntity + DeserializeOwned,
 {
     let parse_result: Result<TMyNoSqlEntity, _> = serde_json::from_slice(&data);
 
     match parse_result {
-        Ok(el) => return el,
+        Ok(el) => return Ok(el),
         Err(err) => {
             let slice_iterator = SliceIterator::new(data);
             let json_first_line_iterator = JsonFirstLineReader::new(slice_iterator);
@@ -27,16 +27,18 @@ where
 
             match db_entity {
                 Ok(db_entity) => {
-                    panic!(
+                    return Err(format!(
                         "Table: {}. Can not parse entity with PartitionKey: [{}] and RowKey: [{}]. Err: {:?}",
                          TMyNoSqlEntity::TABLE_NAME, db_entity.get_partition_key(data), db_entity.get_row_key(data), err
-                    );
+                    ))
+                    ;
                 }
                 Err(err) => {
-                    panic!(
+                    return Err(format!(
                         "Table: {}. Can not extract partitionKey and rowKey. Looks like entity broken at all. Err: {:?}",
                         TMyNoSqlEntity::TABLE_NAME, err
-                    )
+                    ))
+                    
                 }
             }
         }
