@@ -10,7 +10,7 @@ mod test {
         let test_json = r#"{
             "PartitionKey": "TestPk",
             "RowKey": "TestRk",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
 
         let inject_time_stamp = JsonTimeStamp::now();

@@ -165,7 +165,7 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
 
         let time_stamp = JsonTimeStamp::now();
@@ -183,7 +183,7 @@ mod tests {
     fn test_that_index_does_not_appear_since_we_do_not_have_expiration() {
         let test_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test",
+            "RowKey": "test"
         }"#;
 
         let time_stamp = JsonTimeStamp::now();
@@ -253,7 +253,7 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
 
         let time_stamp = JsonTimeStamp::now();
@@ -292,7 +292,7 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
 
         let now = JsonTimeStamp::now();
@@ -321,7 +321,7 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
 
         let now = JsonTimeStamp::now();
@@ -347,7 +347,7 @@ mod tests {
         let test_json = r#"{
             "PartitionKey": "test",
             "RowKey": "test",
-            "Expires": "2019-01-01T00:00:00",
+            "Expires": "2019-01-01T00:00:00"
         }"#;
         let now = JsonTimeStamp::now();
 
@@ -372,7 +372,7 @@ mod tests {
 
         let json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test1",
+            "RowKey": "test1"
         }"#;
 
         let db_row = DbJsonEntity::parse_into_db_row(
@@ -389,7 +389,7 @@ mod tests {
 
         let raw_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test2",
+            "RowKey": "test2"
         }"#;
 
         let db_row = DbJsonEntity::parse_into_db_row(
@@ -406,7 +406,7 @@ mod tests {
 
         let json_db_row = r#"{
             "PartitionKey": "test",
-            "RowKey": "test3",
+            "RowKey": "test3"
         }"#;
 
         let db_row = DbJsonEntity::parse_into_db_row(
@@ -423,7 +423,7 @@ mod tests {
 
         let raw_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test4",
+            "RowKey": "test4"
         }"#;
 
         let db_row = DbJsonEntity::parse_into_db_row(

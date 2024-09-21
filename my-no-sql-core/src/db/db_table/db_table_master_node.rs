@@ -122,7 +122,7 @@ mod tests {
 
         let test_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test",
+            "RowKey": "test"
         }"#;
 
         let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &now).unwrap();
@@ -146,7 +146,7 @@ mod tests {
 
         let test_json = r#"{
             "PartitionKey": "test",
-            "RowKey": "test",
+            "RowKey": "test"
         }"#;
 
         let db_row = DbJsonEntity::parse_into_db_row(test_json.as_bytes().into(), &now).unwrap();
