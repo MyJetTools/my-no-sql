@@ -1,18 +1,22 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use my_no_sql_tcp_shared::sync_to_main::UpdateEntityStatisticsData;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::subscribers::MyNoSqlDataReaderMockInner;
 
-pub struct GetEntitiesBuilderMock<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub struct GetEntitiesBuilderMock<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
     partition_key: String,
     update_statistic_data: UpdateEntityStatisticsData,
     inner: Arc<MyNoSqlDataReaderMockInner<TMyNoSqlEntity>>,
 }
 
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> GetEntitiesBuilderMock<TMyNoSqlEntity> {
+impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static>
+    GetEntitiesBuilderMock<TMyNoSqlEntity>
+{
     pub fn new(
         partition_key: String,
         inner: Arc<MyNoSqlDataReaderMockInner<TMyNoSqlEntity>>,

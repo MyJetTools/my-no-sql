@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use rust_extensions::{lazy::LazyVec, AppStates};
 use tokio::sync::RwLock;
 
@@ -11,12 +11,14 @@ use crate::MyNoSqlDataReaderCallBacks;
 
 use super::MyNoSqlDataReaderCallBacksPusher;
 
-pub struct MyNoSqlDataReaderMockInnerData<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub struct MyNoSqlDataReaderMockInnerData<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
     pub items: BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
     pub callbacks: Option<Arc<MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>>>,
 }
 
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
+impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static>
     MyNoSqlDataReaderMockInnerData<TMyNoSqlEntity>
 {
     pub fn new() -> Self {
@@ -27,14 +29,16 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
     }
 }
 
-pub struct MyNoSqlDataReaderMockInner<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub struct MyNoSqlDataReaderMockInner<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
     pub inner: RwLock<MyNoSqlDataReaderMockInnerData<TMyNoSqlEntity>>,
     app_states: Arc<AppStates>,
 }
 
 impl<TMyNoSqlEntity> MyNoSqlDataReaderMockInner<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
 {
     pub fn new() -> Self {
         Self {

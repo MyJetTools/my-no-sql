@@ -1,18 +1,20 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_abstractions::MyNoSqlEntity;
+use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 
 use crate::MyNoSqlDataReaderCallBacks;
 
 use super::{GetEntitiesBuilder, GetEntityBuilder, MyNoSqlDataReader, MyNoSqlDataReaderMockInner};
 
-pub struct MyNoSqlDataReaderMock<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub struct MyNoSqlDataReaderMock<
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
+> {
     pub inner: Arc<MyNoSqlDataReaderMockInner<TMyNoSqlEntity>>,
 }
 
 impl<TMyNoSqlEntity> MyNoSqlDataReaderMock<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
 {
     pub fn new() -> Self {
         Self {
@@ -31,7 +33,7 @@ where
 #[async_trait::async_trait]
 impl<TMyNoSqlEntity> MyNoSqlDataReader<TMyNoSqlEntity> for MyNoSqlDataReaderMock<TMyNoSqlEntity>
 where
-    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static,
+    TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + 'static,
 {
     async fn get_table_snapshot_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         let result = self.inner.get_table_snapshot_as_vec().await;
