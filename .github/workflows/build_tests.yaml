@@ -23,7 +23,7 @@ jobs:
         run: cargo test       
 
       - name: Build Master-Node
-        run: cargo test --master-node
+        run: cargo test --features master-node
 
       - name: Build default
         run: cargo build --all-features
