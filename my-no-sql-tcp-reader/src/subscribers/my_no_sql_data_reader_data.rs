@@ -89,6 +89,10 @@ where
         self.entities.delete_rows(rows_to_delete, &self.callbacks);
     }
 
+    pub fn get_partition_keys(&self) -> Vec<String> {
+        self.entities.get_partition_keys()
+    }
+
     pub fn get_table_snapshot(
         &mut self,
     ) -> Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>> {

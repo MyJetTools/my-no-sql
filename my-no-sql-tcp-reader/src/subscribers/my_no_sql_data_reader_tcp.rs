@@ -237,6 +237,11 @@ where
 
         Some(TResult::from(entity))
     }
+
+    pub async fn get_partition_keys(&self) -> Vec<String> {
+        let write_access = self.inner.data.lock().await;
+        write_access.get_partition_keys()
+    }
 }
 
 #[async_trait]
@@ -276,6 +281,9 @@ where
     TMyNoSqlEntity:
         MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send + DeserializeOwned + 'static,
 {
+    async fn get_partition_keys(&self) -> Vec<String> {
+        self.get_partition_keys().await
+    }
     async fn get_table_snapshot_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         self.get_table_snapshot_as_vec().await
     }

@@ -207,4 +207,13 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send>
         )
         .await
     }
+
+    pub async fn get_partition_keys(
+        &self,
+        skip: Option<i32>,
+        limit: Option<i32>,
+    ) -> Result<Vec<String>, DataWriterError> {
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::get_partition_keys(fl_url, TEntity::TABLE_NAME, skip, limit).await
+    }
 }

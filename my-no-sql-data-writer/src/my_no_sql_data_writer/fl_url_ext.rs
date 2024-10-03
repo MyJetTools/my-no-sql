@@ -7,6 +7,9 @@ pub trait FlUrlExt {
     fn with_partition_key_as_query_param(self, partition_key: &str) -> FlUrl;
     fn with_partition_keys_as_query_param(self, partition_keys: &[&str]) -> FlUrl;
     fn with_row_key_as_query_param(self, partition_key: &str) -> FlUrl;
+
+    fn with_skip_as_query_param(self, skip: Option<i32>) -> FlUrl;
+    fn with_limit_as_query_param(self, limit: Option<i32>) -> FlUrl;
 }
 
 impl FlUrlExt for FlUrl {
@@ -42,5 +45,21 @@ impl FlUrlExt for FlUrl {
 
     fn with_row_key_as_query_param(self, row_key: &str) -> FlUrl {
         self.append_query_param("rowKey", Some(row_key))
+    }
+
+    fn with_skip_as_query_param(self, skip: Option<i32>) -> FlUrl {
+        if let Some(skip) = skip {
+            self.append_query_param("skip", Some(skip.to_string()))
+        } else {
+            self
+        }
+    }
+
+    fn with_limit_as_query_param(self, limit: Option<i32>) -> FlUrl {
+        if let Some(limit) = limit {
+            self.append_query_param("limit", Some(limit.to_string()))
+        } else {
+            self
+        }
     }
 }

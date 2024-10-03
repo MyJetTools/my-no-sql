@@ -23,6 +23,8 @@ pub trait MyNoSqlDataReader<
         partition_key: &str,
     ) -> Option<Vec<Arc<TMyNoSqlEntity>>>;
 
+    async fn get_partition_keys(&self) -> Vec<String>;
+
     async fn get_entity(&self, partition_key: &str, row_key: &str) -> Option<Arc<TMyNoSqlEntity>>;
 
     async fn get_enum_case_model<

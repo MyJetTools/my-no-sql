@@ -187,6 +187,13 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'st
             }
         }
     }
+
+    pub fn get_partition_keys(&self) -> Vec<String> {
+        match self.entities.as_ref() {
+            Some(entities) => entities.keys().cloned().collect(),
+            None => Vec::new(),
+        }
+    }
 }
 
 pub struct InitTableResult<

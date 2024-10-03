@@ -218,6 +218,15 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         super::execution::get_by_row_key(fl_url, row_key).await
     }
 
+    pub async fn get_partition_keys(
+        &self,
+        skip: Option<i32>,
+        limit: Option<i32>,
+    ) -> Result<Vec<String>, DataWriterError> {
+        let (fl_url, _) = self.fl_url_factory.get_fl_url().await?;
+        super::execution::get_partition_keys(fl_url, TEntity::TABLE_NAME, skip, limit).await
+    }
+
     pub async fn delete_enum_case<
         TResult: MyNoSqlEntity
             + From<TEntity>
