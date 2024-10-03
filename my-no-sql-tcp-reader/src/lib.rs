@@ -8,7 +8,8 @@ pub use data_reader_entities_set::*;
 pub use my_no_sql_tcp_connection::MyNoSqlTcpConnection;
 pub use settings::*;
 pub use subscribers::{
-    MyNoSqlDataReader, MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderData, MyNoSqlDataReaderTcp,
+    LazyMyNoSqlEntity, MyNoSqlDataReader, MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderData,
+    MyNoSqlDataReaderTcp,
 };
 
 #[cfg(feature = "mocks")]
