@@ -6,6 +6,7 @@ use my_json::{
 use my_logger::LogEventCtx;
 use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity, MyNoSqlEntitySerializer};
 use rust_extensions::array_of_bytes_iterator::SliceIterator;
+use serde::{Deserialize, Serialize};
 
 use crate::{CreateTableParams, DataWriterError, OperationFailHttpContract, UpdateReadStatistics};
 
@@ -283,6 +284,11 @@ pub async fn get_partition_keys(
     skip: Option<i32>,
     limit: Option<i32>,
 ) -> Result<Vec<String>, DataWriterError> {
+    #[derive(Serialize, Deserialize)]
+    pub struct GetPartitionsJsonResult {
+        pub amount: usize,
+        pub data: Vec<String>,
+    }
     let mut response = flurl
         .append_path_segment(API_SEGMENT)
         .append_path_segment(PARTITIONS_CONTROLLER)
@@ -299,8 +305,10 @@ pub async fn get_partition_keys(
     check_error(&mut response).await?;
 
     if is_ok_result(&response) {
-        match serde_json::from_slice(response.get_body_as_slice().await?) {
-            Ok(entities) => return Ok(entities),
+        let result: Result<GetPartitionsJsonResult, _> =
+            serde_json::from_slice(response.get_body_as_slice().await?);
+        match result {
+            Ok(result) => return Ok(result.data),
             Err(err) => {
                 return Err(DataWriterError::Error(format!(
                     "Failed to deserialize: {:?}",
