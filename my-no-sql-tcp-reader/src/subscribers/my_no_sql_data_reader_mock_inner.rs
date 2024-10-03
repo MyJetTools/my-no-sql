@@ -114,6 +114,11 @@ where
         read_access.items.get(partition_key).cloned()
     }
 
+    pub async fn get_partition_keys(&self) -> Vec<String> {
+        let read_access = self.inner.read().await;
+        read_access.items.keys().cloned().collect()
+    }
+
     pub async fn get_by_partition_key_as_vec(
         &self,
         partition_key: &str,

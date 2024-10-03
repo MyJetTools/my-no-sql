@@ -52,6 +52,10 @@ where
         self.inner.get_by_partition_key(partition_key).await
     }
 
+    async fn get_partition_keys(&self) -> Vec<String> {
+        self.inner.get_partition_keys().await
+    }
+
     async fn get_by_partition_key_as_vec(
         &self,
         partition_key: &str,
