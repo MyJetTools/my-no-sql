@@ -7,8 +7,8 @@ pub fn compress(payload: &[u8]) -> Result<Vec<u8>, zip::result::ZipError> {
     {
         let mut zip = zip::ZipWriter::new(&mut writer);
 
-        let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
 
         zip.start_file("d", options)?;
 
