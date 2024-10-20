@@ -113,6 +113,26 @@ where
         reader.has_partition(partition_key)
     }
 
+    pub async fn iter_and_find_entity_inside_partition(
+        &self,
+        partition_key: &str,
+        predicate: impl Fn(&TMyNoSqlEntity) -> bool,
+    ) -> Option<Arc<TMyNoSqlEntity>> {
+        let mut reader = self.inner.data.lock().await;
+
+        if let Some(entities) = reader.iter_entities(partition_key) {
+            for entity in entities {
+                let entity = entity.get();
+
+                if predicate(&entity) {
+                    return Some(entity.clone());
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn deserialize_array(
         &self,
         data: &[u8],

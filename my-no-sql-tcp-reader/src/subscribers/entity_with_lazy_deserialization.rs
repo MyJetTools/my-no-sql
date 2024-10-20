@@ -32,15 +32,19 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Send + Sync + 'st
         }
     }
 
-    pub fn get(&mut self) -> Arc<TMyNoSqlEntity> {
+    pub fn get(&mut self) -> &Arc<TMyNoSqlEntity> {
         match self {
-            LazyMyNoSqlEntity::Deserialized(entity) => entity.clone(),
+            LazyMyNoSqlEntity::Deserialized(entity) => return entity,
             LazyMyNoSqlEntity::Raw(src) => {
                 let entity = TMyNoSqlEntity::deserialize_entity(&src.data).unwrap();
                 let entity = Arc::new(entity);
                 *self = LazyMyNoSqlEntity::Deserialized(entity.clone());
-                entity
             }
+        }
+
+        match self {
+            LazyMyNoSqlEntity::Deserialized(entity) => entity,
+            LazyMyNoSqlEntity::Raw(_) => panic!("We should have deserialized it"),
         }
     }
 

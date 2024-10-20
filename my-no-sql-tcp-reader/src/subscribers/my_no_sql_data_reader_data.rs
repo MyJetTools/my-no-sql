@@ -101,12 +101,12 @@ where
             return None;
         }
 
-        let mut result = BTreeMap::new();
+        let mut result: BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>> = BTreeMap::new();
         for (partition_key, entities) in entities.iter_mut() {
             let mut to_insert = BTreeMap::new();
 
             for (row_key, entity) in entities.iter_mut() {
-                to_insert.insert(row_key.clone(), entity.get());
+                to_insert.insert(row_key.clone(), entity.get().clone());
             }
 
             result.insert(partition_key.clone(), to_insert);
@@ -126,7 +126,7 @@ where
 
         for partition in entities.values_mut() {
             for entity in partition.values_mut() {
-                result.push(entity.get());
+                result.push(entity.get().clone());
             }
         }
 
@@ -144,7 +144,7 @@ where
 
         let row = partition.get_mut(row_key)?;
 
-        Some(row.get())
+        Some(row.get().clone())
     }
 
     pub fn get_by_partition(
@@ -158,7 +158,7 @@ where
         let mut result = BTreeMap::new();
 
         for itm in partition.iter_mut() {
-            result.insert(itm.0.clone(), itm.1.get());
+            result.insert(itm.0.clone(), itm.1.get().clone());
         }
 
         Some(result)
@@ -183,6 +183,15 @@ where
         }
 
         Some(result)
+    }
+
+    pub fn iter_entities<'s>(
+        &'s mut self,
+        partition_key: &str,
+    ) -> Option<impl Iterator<Item = &'s mut LazyMyNoSqlEntity<TMyNoSqlEntity>>> {
+        let entities = self.entities.as_mut()?;
+        let partition = entities.get_mut(partition_key)?;
+        Some(partition.values_mut())
     }
 
     pub fn has_partition(&self, partition_key: &str) -> bool {
@@ -212,7 +221,7 @@ where
         let mut result = Vec::with_capacity(partition.len());
 
         for db_row in partition.values_mut() {
-            result.push(db_row.get());
+            result.push(db_row.get().clone());
         }
 
         Some(result)
