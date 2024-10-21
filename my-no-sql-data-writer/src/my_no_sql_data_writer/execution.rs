@@ -550,7 +550,17 @@ fn deserialize_entities<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
 ) -> Result<Vec<TEntity>, DataWriterError> {
     let mut result = Vec::new();
     let slice_iterator = SliceIterator::new(src);
-    let mut json_array_iterator = JsonArrayIterator::new(slice_iterator);
+    let json_array_iterator = JsonArrayIterator::new(slice_iterator);
+
+    if let Err(err) = &json_array_iterator {
+        panic!(
+            "Can not deserialize entities for table: {}. Err: {:?}",
+            TEntity::TABLE_NAME,
+            err
+        );
+    }
+
+    let mut json_array_iterator = json_array_iterator.unwrap();
 
     while let Some(item) = json_array_iterator.get_next() {
         let itm = item.unwrap();

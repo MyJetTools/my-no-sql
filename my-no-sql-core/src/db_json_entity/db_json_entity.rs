@@ -246,7 +246,7 @@ impl DbJsonEntity {
 
         let slice_iterator = SliceIterator::new(src);
 
-        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator);
+        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
@@ -264,7 +264,7 @@ impl DbJsonEntity {
 
         let slice_iterator = SliceIterator::new(src);
 
-        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator);
+        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
@@ -284,7 +284,7 @@ impl DbJsonEntity {
 
         let slice_iterator = SliceIterator::new(src);
 
-        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator);
+        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
@@ -316,7 +316,7 @@ impl DbJsonEntity {
         let mut result = Vec::new();
 
         let slice_iterator = SliceIterator::new(src);
-        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator);
+        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;

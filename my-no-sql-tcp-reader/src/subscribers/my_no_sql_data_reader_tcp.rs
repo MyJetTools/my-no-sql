@@ -139,8 +139,17 @@ where
     ) -> BTreeMap<String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>> {
         let slice_iterator = SliceIterator::new(data);
 
-        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator);
+        let json_array_iterator = JsonArrayIterator::new(slice_iterator);
 
+        if let Err(err) = &json_array_iterator {
+            panic!(
+                "Table: {}. The whole array of json entities is broken. Err: {:?}",
+                TMyNoSqlEntity::TABLE_NAME,
+                err
+            );
+        }
+
+        let mut json_array_iterator = json_array_iterator.unwrap();
         let mut result = BTreeMap::new();
 
         while let Some(db_entity) = json_array_iterator.get_next() {
