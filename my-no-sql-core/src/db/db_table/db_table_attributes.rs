@@ -19,6 +19,12 @@ impl DbTableAttributes {
     }
 }
 
+impl Default for DbTableAttributes {
+    fn default() -> Self {
+        Self::create_default()
+    }
+}
+
 impl DbTableAttributes {
     pub fn new(
         persist: bool,
