@@ -40,6 +40,7 @@ impl FlUrlFactory {
 
             #[cfg(feature = "with-ssh")]
             http_buffer_size: None,
+            #[cfg(feature = "with-ssh")]
             ssh_credentials: Arc::new(crate::ssh::SshCredentials::UserAgent),
         }
     }
