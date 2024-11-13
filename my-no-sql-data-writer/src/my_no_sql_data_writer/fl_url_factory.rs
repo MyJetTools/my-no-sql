@@ -44,23 +44,9 @@ impl FlUrlFactory {
             ssh_credentials: Arc::new(crate::ssh::SshCredentials::UserAgent),
         }
     }
-    #[cfg(not(feature = "with-ssh"))]
+
     async fn create_fl_url(&self, url: &str) -> FlUrl {
         let fl_url = flurl::FlUrl::new(url);
-        fl_url
-    }
-    #[cfg(feature = "with-ssh")]
-    async fn create_fl_url(&self, url: &str) -> FlUrl {
-        let mut fl_url = flurl::FlUrl::new(url);
-
-        if let Some(ssh_sessions_pool) = &self.ssh_sessions_pool {
-            fl_url = fl_url.set_ssh_sessions_pool(ssh_sessions_pool.clone());
-        }
-
-        if let Some(http_buffer_size) = self.http_buffer_size {
-            fl_url = fl_url.set_http_buffer_size(http_buffer_size);
-        }
-
         fl_url
     }
 
