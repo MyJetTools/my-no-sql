@@ -6,8 +6,8 @@ use tokio::sync::Mutex;
 use crate::{FlUrlFactory, MyNoSqlWriterSettings};
 
 pub struct PingDataItem {
-    pub name: String,
-    pub version: String,
+    pub name: &'static str,
+    pub version: &'static str,
 
     pub table_settings: Vec<(
         String,
@@ -42,8 +42,7 @@ impl PingPool {
 
     pub async fn register(
         &self,
-        name: &str,
-        version: &str,
+
         settings: Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
         table: &str,
     ) {
@@ -53,18 +52,17 @@ impl PingPool {
             data.started = true;
         }
 
-        let index = data
-            .items
-            .iter()
-            .position(|x| x.name == name && x.version == version);
+        let index = data.items.iter().position(|x| {
+            x.name == settings.get_app_name() && x.version == settings.get_app_version()
+        });
 
         if let Some(index) = index {
             let item = &mut data.items[index];
             item.table_settings.push((table.to_string(), settings));
         } else {
             let item = PingDataItem {
-                name: name.to_string(),
-                version: version.to_string(),
+                name: settings.get_app_name(),
+                version: settings.get_app_version(),
 
                 table_settings: vec![((table.to_string(), settings))],
             };
