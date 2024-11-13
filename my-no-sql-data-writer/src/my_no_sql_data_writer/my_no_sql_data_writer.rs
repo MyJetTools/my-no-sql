@@ -50,14 +50,17 @@ pub struct MyNoSqlDataWriter<TEntity: MyNoSqlEntity + Sync + Send> {
 }
 
 impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlDataWriter<TEntity> {
-    pub async fn new(
+    pub fn new(
         settings: Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
         auto_create_table_params: Option<CreateTableParams>,
         sync_period: DataSynchronizationPeriod,
     ) -> Self {
-        crate::PING_POOL
-            .register(settings.clone(), TEntity::TABLE_NAME)
-            .await;
+        let settings_cloned = settings.clone();
+        tokio::spawn(async move {
+            crate::PING_POOL
+                .register(settings_cloned, TEntity::TABLE_NAME)
+                .await;
+        });
 
         Self {
             phantom: PhantomData,
