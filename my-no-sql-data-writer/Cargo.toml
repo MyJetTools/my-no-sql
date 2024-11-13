@@ -1,6 +1,6 @@
 [package]
 name = "my-no-sql-data-writer"
-version = "0.3.3"
+version = "0.4.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -17,7 +17,7 @@ my-logger = { tag = "1.1.0", git = "https://github.com/MyJetTools/my-logger.git"
 rust-extensions = { tag = "0.1.4", git = "https://github.com/MyJetTools/rust-extensions.git", features = [
     "with-tokio",
 ] }
-flurl = { tag = "0.5.3", git = "https://github.com/MyJetTools/fl-url" }
+flurl = { tag = "0.6.0", git = "https://github.com/MyJetTools/fl-url" }
 
 my-json = { tag = "0.3.0", git = "https://github.com/MyJetTools/my-json.git" }
 
@@ -27,6 +27,7 @@ async-trait = "*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 serde_derive = "*"
+lazy_static = "*"
 
 [dev-dependencies]
 my-no-sql-core = { path = "../my-no-sql-core" }
