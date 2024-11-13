@@ -11,3 +11,4 @@ mod fl_url_ext;
 mod with_retries;
 pub use with_retries::*;
 mod fl_url_factory;
+pub use fl_url_factory::*;

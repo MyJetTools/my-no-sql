@@ -50,11 +50,17 @@ pub struct MyNoSqlDataWriter<TEntity: MyNoSqlEntity + Sync + Send> {
 }
 
 impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlDataWriter<TEntity> {
-    pub fn new(
+    pub async fn new(
+        app_name: &str,
+        app_version: &str,
         settings: Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
         auto_create_table_params: Option<CreateTableParams>,
         sync_period: DataSynchronizationPeriod,
     ) -> Self {
+        crate::PING_POOL
+            .register(app_name, app_version, settings.clone(), TEntity::TABLE_NAME)
+            .await;
+
         Self {
             phantom: PhantomData,
             sync_period,
