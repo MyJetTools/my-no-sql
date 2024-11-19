@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
-use my_json::json_reader::array_iterator::JsonArrayIterator;
+use my_json::json_reader::JsonArrayIterator;
 use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
-use rust_extensions::{array_of_bytes_iterator::SliceIterator, ApplicationStates, StrOrString};
+use rust_extensions::{ApplicationStates, StrOrString};
 use serde::de::DeserializeOwned;
 use tokio::sync::Mutex;
 
@@ -137,9 +137,7 @@ where
         &self,
         data: &[u8],
     ) -> BTreeMap<String, Vec<LazyMyNoSqlEntity<TMyNoSqlEntity>>> {
-        let slice_iterator = SliceIterator::new(data);
-
-        let json_array_iterator = JsonArrayIterator::new(slice_iterator);
+        let json_array_iterator = JsonArrayIterator::new(data);
 
         if let Err(err) = &json_array_iterator {
             panic!(
@@ -149,7 +147,7 @@ where
             );
         }
 
-        let mut json_array_iterator = json_array_iterator.unwrap();
+        let json_array_iterator = json_array_iterator.unwrap();
         let mut result = BTreeMap::new();
 
         while let Some(db_entity) = json_array_iterator.get_next() {
@@ -164,7 +162,7 @@ where
             let db_entity_data = db_entity.unwrap();
 
             let item_to_insert = if TMyNoSqlEntity::LAZY_DESERIALIZATION {
-                let data = db_entity_data.as_bytes(&json_array_iterator).to_vec();
+                let data = db_entity_data.as_bytes().to_vec();
                 let db_json_entity =
                     my_no_sql_core::db_json_entity::DbJsonEntity::from_slice(&data).unwrap();
 
@@ -177,11 +175,9 @@ where
                 )
             } else {
                 LazyMyNoSqlEntity::Deserialized(
-                    TMyNoSqlEntity::deserialize_entity(
-                        db_entity_data.as_bytes(&json_array_iterator),
-                    )
-                    .unwrap()
-                    .into(),
+                    TMyNoSqlEntity::deserialize_entity(db_entity_data.as_bytes())
+                        .unwrap()
+                        .into(),
                 )
             };
 

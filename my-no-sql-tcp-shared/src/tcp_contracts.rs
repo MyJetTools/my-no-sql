@@ -498,9 +498,9 @@ impl my_tcp_sockets::TcpContract for MyNoSqlTcpContract {
 }
 
 impl TcpSerializerState<MyNoSqlTcpContract> for () {
-    fn is_tcp_contract_related_to_metadata(&self, contract: &MyNoSqlTcpContract) -> bool {
+    fn is_tcp_contract_related_to_metadata(&self, _contract: &MyNoSqlTcpContract) -> bool {
         false
     }
 
-    fn apply_tcp_contract(&mut self, contract: &MyNoSqlTcpContract) {}
+    fn apply_tcp_contract(&mut self, _contract: &MyNoSqlTcpContract) {}
 }

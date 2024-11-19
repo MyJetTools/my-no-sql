@@ -1,11 +1,10 @@
 use flurl::{FlUrl, FlUrlResponse};
 use my_json::{
-    json_reader::array_iterator::JsonArrayIterator,
+    json_reader::JsonArrayIterator,
     json_writer::{JsonArrayWriter, RawJsonObject},
 };
 use my_logger::LogEventCtx;
 use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity, MyNoSqlEntitySerializer};
-use rust_extensions::array_of_bytes_iterator::SliceIterator;
 use serde::{Deserialize, Serialize};
 
 use crate::{CreateTableParams, DataWriterError, OperationFailHttpContract, UpdateReadStatistics};
@@ -549,8 +548,8 @@ fn deserialize_entities<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
     src: &[u8],
 ) -> Result<Vec<TEntity>, DataWriterError> {
     let mut result = Vec::new();
-    let slice_iterator = SliceIterator::new(src);
-    let json_array_iterator = JsonArrayIterator::new(slice_iterator);
+
+    let json_array_iterator = JsonArrayIterator::new(src);
 
     if let Err(err) = &json_array_iterator {
         panic!(
@@ -560,12 +559,12 @@ fn deserialize_entities<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
         );
     }
 
-    let mut json_array_iterator = json_array_iterator.unwrap();
+    let json_array_iterator = json_array_iterator.unwrap();
 
     while let Some(item) = json_array_iterator.get_next() {
         let itm = item.unwrap();
 
-        result.push(TEntity::deserialize_entity(itm.as_bytes(&json_array_iterator)).unwrap());
+        result.push(TEntity::deserialize_entity(itm.as_bytes()).unwrap());
     }
     Ok(result)
 

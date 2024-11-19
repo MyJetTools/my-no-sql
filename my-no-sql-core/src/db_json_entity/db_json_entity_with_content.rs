@@ -1,5 +1,4 @@
-use my_json::json_reader::JsonFirstLineReader;
-use rust_extensions::array_of_bytes_iterator::SliceIterator;
+use my_json::json_reader::JsonFirstLineIterator;
 
 use crate::db::DbRow;
 
@@ -37,8 +36,7 @@ impl<'s> DbJsonEntityWithContent<'s> {
     }
 
     pub fn into_db_row(self) -> Result<DbRow, DbEntityParseFail> {
-        let slice_iterator = SliceIterator::new(self.raw);
-        let first_line_reader = JsonFirstLineReader::new(slice_iterator);
+        let first_line_reader = JsonFirstLineIterator::new(self.raw);
         DbJsonEntity::parse_into_db_row(first_line_reader, &self.time_stamp)
     }
 }

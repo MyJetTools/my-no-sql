@@ -3,13 +3,12 @@ use std::sync::Arc;
 use my_no_sql_tcp_shared::{
     sync_to_main::SyncToMainNodeHandler, MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract,
 };
-use my_tcp_sockets::{
-    tcp_connection::TcpSocketConnection, SocketEventCallback, TcpSerializerState,
-};
+use my_tcp_sockets::{tcp_connection::TcpSocketConnection, SocketEventCallback};
 
 use crate::subscribers::Subscribers;
 
-pub type TcpConnection = TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>;
+pub type MyNoSqlTcpConnection =
+    TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>;
 pub struct TcpEvents {
     app_name: String,
     pub subscribers: Subscribers,
@@ -28,10 +27,7 @@ impl TcpEvents {
 
 #[async_trait::async_trait]
 impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for TcpEvents {
-    async fn connected(
-        &self,
-        connection: Arc<TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>>,
-    ) {
+    async fn connected(&self, connection: Arc<MyNoSqlTcpConnection>) {
         let contract = MyNoSqlTcpContract::Greeting {
             name: self.app_name.to_string(),
         };
@@ -50,19 +46,12 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
             .tcp_events_pusher_new_connection_established(connection);
     }
 
-    async fn disconnected(
-        &self,
-        connection: Arc<TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>>,
-    ) {
+    async fn disconnected(&self, connection: Arc<MyNoSqlTcpConnection>) {
         self.sync_handler
             .tcp_events_pusher_connection_disconnected(connection);
     }
 
-    async fn payload(
-        &self,
-        _connection: &Arc<TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>>,
-        contract: MyNoSqlTcpContract,
-    ) {
+    async fn payload(&self, _connection: &Arc<MyNoSqlTcpConnection>, contract: MyNoSqlTcpContract) {
         match contract {
             MyNoSqlTcpContract::Ping => {}
             MyNoSqlTcpContract::Pong => {}

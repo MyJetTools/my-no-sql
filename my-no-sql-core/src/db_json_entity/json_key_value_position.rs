@@ -1,4 +1,4 @@
-use my_json::json_reader::JsonKeyValue;
+use my_json::json_reader::{JsonContentOffset, JsonValue};
 
 #[derive(Debug, Clone)]
 pub struct KeyValueContentPosition {
@@ -31,16 +31,16 @@ pub struct JsonKeyValuePosition {
 }
 
 impl JsonKeyValuePosition {
-    pub fn new(src: &JsonKeyValue) -> Self {
+    pub fn new(name: &JsonContentOffset, value: &JsonValue) -> Self {
         Self {
             key: KeyValueContentPosition {
-                start: src.name.start,
-                end: src.name.end,
+                start: name.start,
+                end: name.end,
             },
 
             value: KeyValueContentPosition {
-                start: src.value.start,
-                end: src.value.end,
+                start: value.start,
+                end: value.end,
             },
         }
     }

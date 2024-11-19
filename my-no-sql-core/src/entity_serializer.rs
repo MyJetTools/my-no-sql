@@ -1,6 +1,5 @@
-use my_json::json_reader::JsonFirstLineReader;
+use my_json::json_reader::JsonFirstLineIterator;
 use my_no_sql_abstractions::MyNoSqlEntity;
-use rust_extensions::array_of_bytes_iterator::SliceIterator;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::db_json_entity::DbJsonEntity;
@@ -21,8 +20,8 @@ where
     match parse_result {
         Ok(el) => return Ok(el),
         Err(err) => {
-            let slice_iterator = SliceIterator::new(data);
-            let json_first_line_iterator = JsonFirstLineReader::new(slice_iterator);
+   
+            let json_first_line_iterator = JsonFirstLineIterator::new(data);
             let db_entity = DbJsonEntity::new(json_first_line_iterator);
 
             match db_entity {
