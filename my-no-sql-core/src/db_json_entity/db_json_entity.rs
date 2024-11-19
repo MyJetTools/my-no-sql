@@ -124,13 +124,10 @@ impl DbJsonEntity {
             match name {
                 super::consts::PARTITION_KEY => {
                     partition_key = Some(raw.append(&name_ref, &value_ref));
-
-                    println!("PartitionKey: {:?}", partition_key);
                 }
 
                 super::consts::ROW_KEY => {
                     row_key = Some(raw.append(&name_ref, &value_ref));
-                    println!("RowKey: {:?}", row_key);
                     time_stamp = raw
                         .append_str_value(super::consts::TIME_STAMP, now.as_str())
                         .into();
