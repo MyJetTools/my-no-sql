@@ -1,6 +1,6 @@
 [package]
 name = "my-no-sql-tcp-reader"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,10 +13,10 @@ my-no-sql-tcp-shared = { path = "../my-no-sql-tcp-shared" }
 my-no-sql-abstractions = { path = "../my-no-sql-abstractions" }
 my-no-sql-core = { path = "../my-no-sql-core" }
 
-rust-extensions = { tag = "0.1.4", git = "https://github.com/MyJetTools/rust-extensions.git" }
-my-tcp-sockets = { tag = "0.1.9", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
-my-logger = { tag = "1.1.0", git = "https://github.com/MyJetTools/my-logger.git" }
-my-json = { tag = "0.3.0", git = "https://github.com/MyJetTools/my-json.git" }
+rust-extensions = { tag = "0.1.5", git = "https://github.com/MyJetTools/rust-extensions.git" }
+my-tcp-sockets = { tag = "0.1.11", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
+my-logger = { tag = "1.2.1", git = "https://github.com/MyJetTools/my-logger.git" }
+my-json = { tag = "0.3.1", git = "https://github.com/MyJetTools/my-json.git" }
 
 tokio = { version = "*", features = ["full"] }
 tokio-util = "*"

@@ -1,6 +1,6 @@
 use my_tcp_sockets::{
     socket_reader::{ReadingTcpContractFail, SocketReader, SocketReaderInMem},
-    TcpWriteBuffer,
+    TcpSerializerState, TcpWriteBuffer,
 };
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -495,4 +495,12 @@ impl my_tcp_sockets::TcpContract for MyNoSqlTcpContract {
             _ => false,
         }
     }
+}
+
+impl TcpSerializerState<MyNoSqlTcpContract> for () {
+    fn is_tcp_contract_related_to_metadata(&self, contract: &MyNoSqlTcpContract) -> bool {
+        false
+    }
+
+    fn apply_tcp_contract(&mut self, contract: &MyNoSqlTcpContract) {}
 }

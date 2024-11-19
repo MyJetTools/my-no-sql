@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
 use my_no_sql_tcp_shared::{sync_to_main::SyncToMainNodeHandler, MyNoSqlTcpSerializerFactory};
-use my_tcp_sockets::TcpClient;
+use my_tcp_sockets::{TcpClient, TlsSettings};
 use rust_extensions::{AppStates, StrOrString};
 
 use crate::{
@@ -17,6 +17,10 @@ pub struct TcpConnectionSettings {
 impl my_tcp_sockets::TcpClientSocketSettings for TcpConnectionSettings {
     async fn get_host_port(&self) -> Option<String> {
         self.settings.get_host_port().await.into()
+    }
+
+    async fn get_tls_settings(&self) -> Option<TlsSettings> {
+        None
     }
 }
 

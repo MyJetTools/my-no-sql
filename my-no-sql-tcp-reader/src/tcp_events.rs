@@ -3,7 +3,9 @@ use std::sync::Arc;
 use my_no_sql_tcp_shared::{
     sync_to_main::SyncToMainNodeHandler, MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract,
 };
-use my_tcp_sockets::{tcp_connection::TcpSocketConnection, SocketEventCallback};
+use my_tcp_sockets::{
+    tcp_connection::TcpSocketConnection, SocketEventCallback, TcpSerializerState,
+};
 
 use crate::subscribers::Subscribers;
 
@@ -21,12 +23,6 @@ impl TcpEvents {
             subscribers: Subscribers::new(),
             sync_handler,
         }
-    }
-    pub async fn handle_incoming_packet(
-        &self,
-        _tcp_contract: MyNoSqlTcpContract,
-        _connection: Arc<TcpConnection>,
-    ) {
     }
 }
 
