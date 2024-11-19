@@ -1,6 +1,7 @@
 use crate::db::DbRow;
 
 use my_json::json_reader::array_iterator::JsonArrayIterator;
+use my_json::json_reader::JsonArrayIteratorFromSlice;
 use rust_extensions::array_of_bytes_iterator::SliceIterator;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -28,7 +29,7 @@ impl DbJsonEntity {
         Self::new(JsonFirstLineReader::new(slice_iterator))
     }
     pub fn new(
-        mut json_first_line_reader: JsonFirstLineReader<SliceIterator>,
+        json_first_line_reader: JsonFirstLineReader<SliceIterator>,
     ) -> Result<Self, DbEntityParseFail> {
         let mut partition_key = None;
         let mut row_key = None;
@@ -40,7 +41,7 @@ impl DbJsonEntity {
         while let Some(line) = json_first_line_reader.get_next() {
             let line = line?;
 
-            let name = line.name.as_unescaped_name(&json_first_line_reader)?;
+            let name = line.name.as_unescaped_str(&json_first_line_reader)?;
             match name {
                 super::consts::PARTITION_KEY => {
                     partition_key = Some(JsonKeyValuePosition::new(&line));
@@ -118,7 +119,7 @@ impl DbJsonEntity {
     }
 
     pub fn parse_into_db_row(
-        mut json_first_line_reader: JsonFirstLineReader<SliceIterator>,
+        json_first_line_reader: JsonFirstLineReader<SliceIterator>,
         now: &JsonTimeStamp,
     ) -> Result<DbRow, DbEntityParseFail> {
         let mut partition_key = None;
@@ -134,7 +135,7 @@ impl DbJsonEntity {
 
             let line_ref = line.as_ref(&json_first_line_reader);
 
-            let name = line_ref.name.as_unescaped_name().unwrap();
+            let name = line_ref.name.as_unescaped_str().unwrap();
             match name {
                 super::consts::PARTITION_KEY => {
                     partition_key = Some(raw.append(line_ref));
@@ -246,7 +247,7 @@ impl DbJsonEntity {
 
         let slice_iterator = SliceIterator::new(src);
 
-        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
+        let json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
@@ -264,7 +265,7 @@ impl DbJsonEntity {
 
         let slice_iterator = SliceIterator::new(src);
 
-        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
+        let json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
@@ -284,7 +285,7 @@ impl DbJsonEntity {
 
         let slice_iterator = SliceIterator::new(src);
 
-        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
+        let json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
@@ -315,14 +316,11 @@ impl DbJsonEntity {
     ) -> Result<Vec<(String, Vec<Arc<DbRow>>)>, DbEntityParseFail> {
         let mut result = Vec::new();
 
-        let slice_iterator = SliceIterator::new(src);
-        let mut json_array_iterator = JsonArrayIterator::new(slice_iterator)?;
+        let json_array_iterator = JsonArrayIteratorFromSlice::new(src)?;
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
-            let db_row = DbJsonEntity::restore_into_db_row(
-                json.unwrap_as_object(&json_array_iterator).unwrap(),
-            )?;
+            let db_row = DbJsonEntity::restore_into_db_row(json.unwrap_as_object().unwrap())?;
 
             let partition_key = db_row.get_partition_key();
 
