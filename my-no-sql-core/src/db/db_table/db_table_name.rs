@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DbTableName(Arc<String>);
 
 impl DbTableName {
