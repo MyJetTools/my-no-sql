@@ -5,7 +5,7 @@ use rust_extensions::{
 
 use crate::db::PartitionKey;
 
-use super::{AvgSize, DataToGc, DbPartitionsContainer, DbTable, DbTableAttributes};
+use super::{AvgSize, DataToGc, DbPartitionsContainer, DbTable, DbTableAttributes, DbTableName};
 
 pub struct PartitionLastWriteMoment {
     pub partition_key: PartitionKey,
@@ -19,7 +19,7 @@ impl EntityWithStrKey for PartitionLastWriteMoment {
 }
 
 impl DbTable {
-    pub fn new(name: String, attributes: DbTableAttributes) -> Self {
+    pub fn new(name: DbTableName, attributes: DbTableAttributes) -> Self {
         Self {
             name,
             partitions: DbPartitionsContainer::new(),
@@ -113,10 +113,7 @@ mod tests {
 
     #[test]
     fn test_insert_record() {
-        let mut db_table = DbTable::new(
-            "test-table".to_string(),
-            DbTableAttributes::create_default(),
-        );
+        let mut db_table = DbTable::new("test-table".into(), DbTableAttributes::create_default());
 
         let now = JsonTimeStamp::now();
 
@@ -137,10 +134,7 @@ mod tests {
 
     #[test]
     fn test_insert_and_insert_or_replace() {
-        let mut db_table = DbTable::new(
-            "test-table".to_string(),
-            DbTableAttributes::create_default(),
-        );
+        let mut db_table = DbTable::new("test-table".into(), DbTableAttributes::create_default());
 
         let now = JsonTimeStamp::now();
 

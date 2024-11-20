@@ -1,17 +1,17 @@
 use my_json::json_writer::JsonArrayWriter;
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-use rust_extensions::sorted_vec::SortedVecWithStrKey;
+use rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
 use std::sync::Arc;
 
 use crate::db::{DbPartition, DbRow, PartitionKey, PartitionKeyParameter, RowKeyParameter};
 
 #[cfg(feature = "master-node")]
 use super::DbTableAttributes;
-use super::{AllDbRowsIterator, AvgSize, ByRowKeyIterator, DbPartitionsContainer};
+use super::{AllDbRowsIterator, AvgSize, ByRowKeyIterator, DbPartitionsContainer, DbTableName};
 
 pub struct DbTable {
-    pub name: String,
+    pub name: DbTableName,
     pub partitions: DbPartitionsContainer,
     pub avg_size: AvgSize,
     #[cfg(feature = "master-node")]
@@ -20,11 +20,17 @@ pub struct DbTable {
     pub attributes: DbTableAttributes,
 }
 
+impl EntityWithStrKey for DbTable {
+    fn get_key(&self) -> &str {
+        self.name.as_str()
+    }
+}
+
 impl DbTable {
     #[cfg(not(feature = "master-node"))]
-    pub fn new(name: String) -> Self {
+    pub fn new(name: DbTableName) -> Self {
         Self {
-            name: name.into(),
+            name,
             partitions: DbPartitionsContainer::new(),
             avg_size: AvgSize::new(),
         }

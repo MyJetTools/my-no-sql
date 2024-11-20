@@ -27,3 +27,5 @@ mod all_db_rows_iterator;
 pub use all_db_rows_iterator::*;
 mod by_row_key_iterator;
 pub use by_row_key_iterator::*;
+mod db_table_name;
+pub use db_table_name::*;
