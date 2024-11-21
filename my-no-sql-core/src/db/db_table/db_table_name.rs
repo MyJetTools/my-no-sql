@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DbTableName(Arc<String>);
@@ -10,6 +10,12 @@ impl DbTableName {
 
     pub fn to_string(&self) -> String {
         self.0.to_string()
+    }
+}
+
+impl Display for DbTableName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
