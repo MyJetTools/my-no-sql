@@ -211,10 +211,8 @@ impl DbJsonEntity {
         None
     }
 
-    pub fn restore_into_db_row(
-        json_first_line_reader: JsonFirstLineIterator,
-    ) -> Result<DbRow, DbEntityParseFail> {
-        let raw = json_first_line_reader.as_slice().to_vec();
+    pub fn restore_into_db_row(raw: Vec<u8>) -> Result<DbRow, DbEntityParseFail> {
+        let json_first_line_reader = JsonFirstLineIterator::new(raw.as_slice());
         let db_row = Self::new(json_first_line_reader)?;
         let result = DbRow::new(db_row, raw);
         Ok(result)
@@ -246,7 +244,7 @@ impl DbJsonEntity {
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
-            let db_entity = DbJsonEntity::restore_into_db_row(json.unwrap_as_object().unwrap())?;
+            let db_entity = DbJsonEntity::restore_into_db_row(json.as_bytes().to_vec())?;
             result.push(Arc::new(db_entity));
         }
         return Ok(result);
@@ -293,7 +291,7 @@ impl DbJsonEntity {
 
         while let Some(json) = json_array_iterator.get_next() {
             let json = json?;
-            let db_row = DbJsonEntity::restore_into_db_row(json.unwrap_as_object().unwrap())?;
+            let db_row = DbJsonEntity::restore_into_db_row(json.as_bytes().to_vec())?;
 
             let partition_key = db_row.get_partition_key();
 
