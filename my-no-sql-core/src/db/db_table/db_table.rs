@@ -36,6 +36,10 @@ impl DbTable {
         }
     }
 
+    pub fn restore_partition(&mut self, db_partition: DbPartition) {
+        self.partitions.insert(db_partition);
+    }
+
     pub fn get_partitions_amount(&self) -> usize {
         self.partitions.len()
     }
