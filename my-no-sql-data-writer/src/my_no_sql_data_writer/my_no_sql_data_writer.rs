@@ -133,7 +133,6 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         MyNoSqlDataWriterWithRetries::new(
             self.fl_url_factory.clone(),
             self.sync_period,
-            delay_between_attempts,
             max_attempts,
         )
     }
