@@ -117,15 +117,6 @@ async fn ping_loop() {
                     println!("{}:{} ping error: {:?}", itm.name, itm.version, err);
                     continue;
                 }
-
-                let fl_url_response = fl_url_response.unwrap();
-
-                println!(
-                    "{}:{} ping status code {}",
-                    itm.name,
-                    itm.version,
-                    fl_url_response.get_status_code()
-                )
             }
         }
     }
