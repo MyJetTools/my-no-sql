@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, sync::Arc, time::Duration};
+use std::{marker::PhantomData, sync::Arc};
 
 use flurl::FlUrl;
 
@@ -125,11 +125,7 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
         .await
     }
 
-    pub fn with_retries(
-        &self,
-        delay_between_attempts: Duration,
-        max_attempts: usize,
-    ) -> MyNoSqlDataWriterWithRetries<TEntity> {
+    pub fn with_retries(&self, max_attempts: usize) -> MyNoSqlDataWriterWithRetries<TEntity> {
         MyNoSqlDataWriterWithRetries::new(
             self.fl_url_factory.clone(),
             self.sync_period,
