@@ -108,6 +108,7 @@ async fn ping_loop() {
                 let fl_url_response = fl_url
                     .unwrap()
                     .0
+                    .with_retries(3)
                     .append_path_segment("api")
                     .append_path_segment("ping")
                     .post_json(&ping_model)
