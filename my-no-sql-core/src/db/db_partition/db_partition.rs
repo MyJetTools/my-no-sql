@@ -201,17 +201,17 @@ impl DbPartition {
 }
 
 impl JsonObject for &'_ DbPartition {
-    fn write_into(&self, dest: &mut Vec<u8>) {
+    fn write_into(&self, dest: &mut String) {
         let mut first_element = true;
-        dest.push(b'[');
+        dest.push('[');
         for db_row in self.rows.get_all() {
             if first_element {
                 first_element = false;
             } else {
-                dest.push(b',');
+                dest.push(',');
             }
             db_row.as_ref().write_into(dest)
         }
-        dest.push(b']');
+        dest.push(']');
     }
 }

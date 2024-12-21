@@ -160,14 +160,15 @@ impl DbRow {
     }
 
     #[cfg(not(feature = "master-node"))]
-    pub fn write_json(&self, out: &mut Vec<u8>) {
-        out.extend_from_slice(&self.raw);
+    pub fn write_json(&self, out: &mut String) {
+        let str = unsafe { std::str::from_utf8_unchecked(&self.raw) };
+        out.push_str(str);
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
-        let mut result = Vec::new();
+        let mut result = String::new();
         self.write_json(&mut result);
-        result
+        result.into_bytes()
     }
 }
 
@@ -247,7 +248,7 @@ fn find_json_separator_after(src: &[u8], pos: usize) -> Option<usize> {
 }
 
 impl JsonObject for &'_ DbRow {
-    fn write_into(&self, dest: &mut Vec<u8>) {
+    fn write_into(&self, dest: &mut String) {
         self.write_json(dest)
     }
 }
