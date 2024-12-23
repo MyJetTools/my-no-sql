@@ -42,7 +42,8 @@ impl FlUrlFactory {
 
         #[cfg(feature = "with-ssh")]
         if let Some(ssh_security_credentials_resolver) = &self.ssh_security_credentials_resolver {
-            return fl_url.set_ssh_private_key_resolver(ssh_security_credentials_resolver.clone());
+            return fl_url
+                .set_ssh_security_credentials_resolver(ssh_security_credentials_resolver.clone());
         }
 
         fl_url
