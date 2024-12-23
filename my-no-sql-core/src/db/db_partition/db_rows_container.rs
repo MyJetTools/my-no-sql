@@ -100,7 +100,7 @@ impl DbRowsContainer {
         return self.data.contains(row_key);
     }
 
-    pub fn get_all<'s>(&'s self) -> std::slice::Iter<Arc<DbRow>> {
+    pub fn get_all(&self) -> std::slice::Iter<Arc<DbRow>> {
         self.data.iter()
     }
 

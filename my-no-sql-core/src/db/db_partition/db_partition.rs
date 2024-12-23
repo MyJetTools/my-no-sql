@@ -132,11 +132,11 @@ impl DbPartition {
         result.get_result()
     }
 
-    pub fn get_all_rows<'s>(&'s self) -> std::slice::Iter<Arc<DbRow>> {
+    pub fn get_all_rows(&self) -> std::slice::Iter<Arc<DbRow>> {
         self.rows.get_all()
     }
 
-    pub fn get_all_rows_cloned<'s>(&'s self) -> Vec<Arc<DbRow>> {
+    pub fn get_all_rows_cloned(&self) -> Vec<Arc<DbRow>> {
         self.rows.get_all().map(|itm| itm.clone()).collect()
     }
 

@@ -93,7 +93,7 @@ pub trait MyNoSqlDataReader<
         &'s self,
         partition_key: &'s str,
         row_key: &'s str,
-    ) -> GetEntityBuilder<TMyNoSqlEntity>;
+    ) -> GetEntityBuilder<'s, TMyNoSqlEntity>;
 
     async fn has_partition(&self, partition_key: &str) -> bool;
 

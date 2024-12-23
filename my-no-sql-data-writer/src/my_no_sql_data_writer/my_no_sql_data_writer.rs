@@ -4,9 +4,6 @@ use flurl::FlUrl;
 
 use my_no_sql_abstractions::{DataSynchronizationPeriod, MyNoSqlEntity, MyNoSqlEntitySerializer};
 
-#[cfg(feature = "with-ssh")]
-use flurl::my_ssh::*;
-
 use serde::{Deserialize, Serialize};
 
 use crate::{MyNoSqlDataWriterWithRetries, MyNoSqlWriterSettings};
@@ -87,27 +84,13 @@ impl<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer + Sync + Send> MyNoSqlData
     }
 
     #[cfg(feature = "with-ssh")]
-    pub fn set_ssh_password(&mut self, password: String) {
-        self.fl_url_factory.ssh_credentials =
-            Arc::new(crate::ssh::SshCredentials::Password(password));
-    }
-
-    #[cfg(feature = "with-ssh")]
-    pub fn set_ssh_private_key(&mut self, private_key: String, passphrase: String) {
-        self.fl_url_factory.ssh_credentials = Arc::new(crate::ssh::SshCredentials::PrivateKey {
-            private_key,
-            passphrase,
-        });
-    }
-
-    #[cfg(feature = "with-ssh")]
-    pub fn set_ssh_sessions_pool(&mut self, ssh_sessions_pool: Arc<SshSessionsPool>) {
-        self.fl_url_factory.ssh_sessions_pool = Some(ssh_sessions_pool);
-    }
-
-    #[cfg(feature = "with-ssh")]
-    pub fn set_http_buffer_size(&mut self, buffer_size: usize) {
-        self.fl_url_factory.http_buffer_size = Some(buffer_size);
+    pub fn set_ssh_security_credentials_resolver(
+        &mut self,
+        resolver: Arc<
+            dyn flurl::my_ssh::ssh_settings::SshSecurityCredentialsResolver + Send + Sync,
+        >,
+    ) {
+        self.fl_url_factory.ssh_security_credentials_resolver = Some(resolver);
     }
 
     pub async fn create_table_if_not_exists(

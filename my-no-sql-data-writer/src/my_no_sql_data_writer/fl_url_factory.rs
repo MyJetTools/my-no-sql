@@ -2,9 +2,6 @@ use std::sync::Arc;
 
 use flurl::FlUrl;
 
-#[cfg(feature = "with-ssh")]
-use flurl::my_ssh::SshSessionsPool;
-
 use rust_extensions::UnsafeValue;
 
 use super::{CreateTableParams, DataWriterError, MyNoSqlWriterSettings};
@@ -13,12 +10,10 @@ use super::{CreateTableParams, DataWriterError, MyNoSqlWriterSettings};
 pub struct FlUrlFactory {
     settings: Arc<dyn MyNoSqlWriterSettings + Send + Sync + 'static>,
     auto_create_table_params: Option<Arc<CreateTableParams>>,
+
     #[cfg(feature = "with-ssh")]
-    pub ssh_sessions_pool: Option<Arc<SshSessionsPool>>,
-    #[cfg(feature = "with-ssh")]
-    pub http_buffer_size: Option<usize>,
-    #[cfg(feature = "with-ssh")]
-    pub ssh_credentials: Arc<crate::ssh::SshCredentials>,
+    pub ssh_security_credentials_resolver:
+        Option<Arc<dyn flurl::my_ssh::ssh_settings::SshSecurityCredentialsResolver + Send + Sync>>,
 
     create_table_is_called: Arc<UnsafeValue<bool>>,
     table_name: &'static str,
@@ -32,21 +27,24 @@ impl FlUrlFactory {
     ) -> Self {
         Self {
             auto_create_table_params,
-            #[cfg(feature = "with-ssh")]
-            ssh_sessions_pool: None,
+
             create_table_is_called: UnsafeValue::new(false).into(),
             settings,
             table_name,
 
             #[cfg(feature = "with-ssh")]
-            http_buffer_size: None,
-            #[cfg(feature = "with-ssh")]
-            ssh_credentials: Arc::new(crate::ssh::SshCredentials::UserAgent),
+            ssh_security_credentials_resolver: None,
         }
     }
 
     async fn create_fl_url(&self, url: &str) -> FlUrl {
         let fl_url = flurl::FlUrl::new(url);
+
+        #[cfg(feature = "with-ssh")]
+        if let Some(ssh_security_credentials_resolver) = &self.ssh_security_credentials_resolver {
+            return fl_url.set_ssh_private_key_resolver(ssh_security_credentials_resolver.clone());
+        }
+
         fl_url
     }
 
