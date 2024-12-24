@@ -87,15 +87,26 @@ pub async fn insert_or_replace_entity<
     entity: &TEntity,
     sync_period: &DataSynchronizationPeriod,
 ) -> Result<(), DataWriterError> {
+    let entity = entity.serialize_entity();
+
+    println!(
+        "Insert or replace entity: '{}'",
+        std::str::from_utf8(&entity).unwrap()
+    );
+
     let response = flurl
         .append_path_segment(ROW_CONTROLLER)
         .append_path_segment("InsertOrReplace")
         .append_data_sync_period(sync_period)
         .with_table_name_as_query_param(TEntity::TABLE_NAME)
-        .post(entity.serialize_entity().into())
+        .post(entity.into())
         .await?;
 
     if is_ok_result(&response) {
+        let body = response.receive_body().await?;
+        let body = String::from_utf8(body)?;
+
+        println!("Insert or replace response: '{}'", body);
         return Ok(());
     }
 
