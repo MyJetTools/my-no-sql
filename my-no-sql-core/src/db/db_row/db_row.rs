@@ -114,7 +114,7 @@ impl DbRow {
         }
     }
     #[cfg(feature = "master-node")]
-    pub fn write_json(&self, out: &mut Vec<u8>) {
+    pub fn write_json(&self, out: &mut String) {
         let expires_value = self.get_expires();
 
         if expires_value.is_none() {
@@ -122,23 +122,39 @@ impl DbRow {
                 if let Some(before_separator) =
                     find_json_separator_before(&self.raw, expires.key.start - 1)
                 {
-                    out.extend_from_slice(&self.raw[..before_separator]);
-                    out.extend_from_slice(&self.raw[expires.value.end..]);
+                    unsafe {
+                        out.push_str(std::str::from_utf8_unchecked(&self.raw[..before_separator]));
+                        out.push_str(std::str::from_utf8_unchecked(
+                            &self.raw[expires.value.end..],
+                        ));
+                    }
                     return;
                 }
 
                 if let Some(after_separator) =
                     find_json_separator_after(&self.raw, expires.value.end)
                 {
-                    out.extend_from_slice(&self.raw[..expires.key.start]);
-                    out.extend_from_slice(&self.raw[after_separator..]);
+                    unsafe {
+                        out.push_str(std::str::from_utf8_unchecked(
+                            &self.raw[..expires.key.start],
+                        ));
+                        out.push_str(std::str::from_utf8_unchecked(&self.raw[after_separator..]));
+                    }
                     return;
                 }
 
-                out.extend_from_slice(&self.raw[..expires.key.start]);
-                out.extend_from_slice(&self.raw[expires.value.end..]);
+                unsafe {
+                    out.push_str(std::str::from_utf8_unchecked(
+                        &self.raw[..expires.key.start],
+                    ));
+                    out.push_str(std::str::from_utf8_unchecked(
+                        &self.raw[expires.value.end..],
+                    ));
+                }
             } else {
-                out.extend_from_slice(&self.raw);
+                unsafe {
+                    out.push_str(std::str::from_utf8_unchecked(&self.raw));
+                }
             }
 
             return;
@@ -146,16 +162,22 @@ impl DbRow {
 
         let expires_value = expires_value.unwrap();
 
-        if let Some(expires) = &self.expires {
-            out.extend_from_slice(&self.raw[..expires.key.start]);
-            inject_expires(out, expires_value);
-            out.extend_from_slice(&self.raw[expires.value.end..]);
-        } else {
-            let end_of_json = crate::db_json_entity::get_the_end_of_the_json(&self.raw);
-            out.extend_from_slice(&self.raw[..end_of_json]);
-            out.push(b',');
-            inject_expires(out, expires_value);
-            out.extend_from_slice(&self.raw[end_of_json..]);
+        unsafe {
+            if let Some(expires) = &self.expires {
+                out.push_str(std::str::from_utf8_unchecked(
+                    &self.raw[..expires.key.start],
+                ));
+                inject_expires(out, expires_value);
+                out.push_str(std::str::from_utf8_unchecked(
+                    &self.raw[expires.value.end..],
+                ));
+            } else {
+                let end_of_json = crate::db_json_entity::get_the_end_of_the_json(&self.raw);
+                out.push_str(std::str::from_utf8_unchecked(&self.raw[..end_of_json]));
+                out.push(',');
+                inject_expires(out, expires_value);
+                out.push_str(std::str::from_utf8_unchecked(&self.raw[end_of_json..]));
+            }
         }
     }
 
@@ -199,12 +221,12 @@ impl RowKeyParameter for Arc<DbRow> {
 }
 
 #[cfg(feature = "master-node")]
-fn inject_expires(out: &mut Vec<u8>, expires_value: DateTimeAsMicroseconds) {
-    out.push(b'"');
-    out.extend_from_slice(crate::db_json_entity::consts::EXPIRES.as_bytes());
-    out.extend_from_slice("\":\"".as_bytes());
-    out.extend_from_slice(&expires_value.to_rfc3339().as_bytes()[..19]);
-    out.push(b'"');
+fn inject_expires(out: &mut String, expires_value: DateTimeAsMicroseconds) {
+    out.push('"');
+    out.push_str(crate::db_json_entity::consts::EXPIRES);
+    out.push_str("\":\"");
+    out.push_str(&expires_value.to_rfc3339()[..19]);
+    out.push('"');
 }
 #[cfg(feature = "master-node")]
 fn find_json_separator_before(src: &[u8], pos: usize) -> Option<usize> {
