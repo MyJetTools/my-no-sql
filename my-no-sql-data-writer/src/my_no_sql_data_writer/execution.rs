@@ -99,9 +99,11 @@ pub async fn insert_or_replace_entity<
         return Ok(());
     }
 
-    let reason = response.receive_body().await?;
-    let reason = String::from_utf8(reason)?;
-    return Err(DataWriterError::Error(reason));
+    let body = response.receive_body().await?;
+    let body = String::from_utf8(body)?;
+
+    println!("Insert or replace response: '{}'", body);
+    return Err(DataWriterError::Error(body));
 }
 
 pub async fn bulk_insert_or_replace<
