@@ -89,11 +89,6 @@ pub async fn insert_or_replace_entity<
 ) -> Result<(), DataWriterError> {
     let entity = entity.serialize_entity();
 
-    println!(
-        "Insert or replace entity: '{}'",
-        std::str::from_utf8(&entity).unwrap()
-    );
-
     let response = flurl
         .append_path_segment(ROW_CONTROLLER)
         .append_path_segment("InsertOrReplace")
@@ -103,17 +98,12 @@ pub async fn insert_or_replace_entity<
         .await?;
 
     if is_ok_result(&response) {
-        let body = response.receive_body().await?;
-        let body = String::from_utf8(body)?;
-
-        println!("Insert or replace response: '{}'", body);
         return Ok(());
     }
 
     let body = response.receive_body().await?;
     let body = String::from_utf8(body)?;
 
-    println!("Insert or replace response: '{}'", body);
     return Err(DataWriterError::Error(body));
 }
 
