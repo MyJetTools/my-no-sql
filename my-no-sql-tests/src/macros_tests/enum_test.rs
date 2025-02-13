@@ -25,7 +25,7 @@ pub struct Struct2 {
 #[test]
 fn test_serialize_deserialize_case_1() {
     let src_model = Struct1 {
-        time_stamp: "".to_string(),
+        time_stamp: Default::default(),
         field1: "test".to_string(),
         field2: 123,
     };
@@ -45,7 +45,7 @@ fn test_serialize_deserialize_case_1() {
 fn test_serialize_deserialize_case_2() {
     let src_model = Struct2 {
         row_key: "rk2".to_string(),
-        time_stamp: "".to_string(),
+        time_stamp: Default::default(),
         field3: "test3".to_string(),
         field4: 1234,
     };

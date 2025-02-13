@@ -37,7 +37,7 @@ mod tests {
     #[test]
     fn test() {
         let model_ver2 = MyNoSqlEnumEntityTestVer2::Case2(Struct2 {
-            time_stamp: "".to_string(),
+            time_stamp: Default::default(),
             field3: "field3".to_string(),
             field4: 4,
         });

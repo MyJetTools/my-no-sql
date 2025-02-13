@@ -89,16 +89,14 @@ pub fn get_row_key_token() -> proc_macro2::TokenStream {
 pub fn get_time_stamp_token() -> proc_macro2::TokenStream {
     quote::quote! {
         #[serde(rename = "TimeStamp")]
-        pub time_stamp: String,
+        pub time_stamp: my_no_sql_sdk::abstractions::Timestamp,
     }
 }
 
 pub fn get_fn_get_time_stamp_token() -> proc_macro2::TokenStream {
     quote::quote! {
-        fn get_time_stamp(&self) -> i64 {
-            my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds::parse_iso_string(self.time_stamp.as_str())
-                .unwrap()
-                .unix_microseconds
+        fn get_time_stamp(&self) -> my_no_sql_sdk::abstractions::Timestamp {
+            self.time_stamp
         }
     }
 }

@@ -66,7 +66,7 @@ pub fn generate(
             }
         }
 
-        fn get_time_stamp(&self) -> i64 {
+        fn get_time_stamp(&self) -> my_no_sql_sdk::abstractions::Timestamp {
             use my_no_sql_sdk::abstractions::MyNoSqlEntity;
             match self {
                 #time_stamps

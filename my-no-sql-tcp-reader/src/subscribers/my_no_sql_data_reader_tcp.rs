@@ -199,36 +199,6 @@ where
         }
 
         result
-
-        /*
-
-        let mut result = BTreeMap::new();
-
-        for db_entity in JsonArrayIterator::new(data) {
-            if let Err(err) = &db_entity {
-                panic!(
-                    "Table: {}. The whole array of json entities is broken. Err: {:?}",
-                    TMyNoSqlEntity::TABLE_NAME,
-                    err
-                );
-            }
-
-            let db_entity_data = db_entity.unwrap();
-
-            let el = TMyNoSqlEntity::deserialize_entity(db_entity_data);
-
-            if let Some(el) = el {
-                let partition_key = el.get_partition_key();
-                if !result.contains_key(partition_key) {
-                    result.insert(partition_key.to_string(), Vec::new());
-                }
-
-                result.get_mut(partition_key).unwrap().push(el);
-            }
-        }
-
-        result
-         */
     }
 
     pub async fn get_enum_case_models_by_partition_key<

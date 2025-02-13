@@ -607,7 +607,7 @@ async fn create_table_errors_handler(
 
 #[cfg(test)]
 mod tests {
-    use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer};
+    use my_no_sql_abstractions::{MyNoSqlEntity, MyNoSqlEntitySerializer, Timestamp};
     use serde::Serialize;
     use serde_derive::Deserialize;
 
@@ -630,8 +630,8 @@ mod tests {
             &self.row_key
         }
 
-        fn get_time_stamp(&self) -> i64 {
-            0
+        fn get_time_stamp(&self) -> Timestamp {
+            Timestamp::default()
         }
     }
 

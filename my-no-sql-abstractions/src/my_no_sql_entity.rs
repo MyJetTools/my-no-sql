@@ -1,9 +1,11 @@
+use crate::Timestamp;
+
 pub trait MyNoSqlEntity {
     const TABLE_NAME: &'static str;
     const LAZY_DESERIALIZATION: bool;
     fn get_partition_key(&self) -> &str;
     fn get_row_key(&self) -> &str;
-    fn get_time_stamp(&self) -> i64;
+    fn get_time_stamp(&self) -> Timestamp;
 }
 
 pub trait MyNoSqlEntitySerializer: Sized {
