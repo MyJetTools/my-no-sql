@@ -1,21 +1,31 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use types_reader::TokensObject;
+use syn::DeriveInput;
+use types_reader::{StructProperty, TokensObject};
 
 use crate::MyNoSqlEntityParameters;
 
 pub fn generate(
     attr: proc_macro2::TokenStream,
-    input: proc_macro2::TokenStream,
+    input: proc_macro::TokenStream,
 ) -> Result<TokenStream, syn::Error> {
-    let ast = proc_macro2::TokenStream::from(input);
+    let input_token_stream: proc_macro2::TokenStream = input.clone().into();
+
+    let derive = crate::entity_utils::extract_derive(&input_token_stream);
+
+    let input: DeriveInput = syn::parse(input).unwrap();
+
+    let struct_name = &input.ident;
+
+    let fields = StructProperty::read(&input)?;
 
     let attr: TokensObject = attr.try_into()?;
 
     let params = MyNoSqlEntityParameters::try_from(&attr)?;
 
-    let result = super::generate_base_impl(&ast, params.table_name)?;
+    let result =
+        super::generate_base_impl(struct_name, derive, fields.as_slice(), params.table_name)?;
 
     Ok(result.into())
 }

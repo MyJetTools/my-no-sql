@@ -14,7 +14,7 @@ pub fn generate(
     let row_key = parameters.row_key;
 
     let (struct_name, new_struct) =
-        compile_struct_with_new_fields(&input, false, row_key.is_none(), true);
+        compile_src_with_new_fields(&input, false, row_key.is_none(), true);
 
     let fn_get_time_stamp = get_fn_get_time_stamp_token();
 

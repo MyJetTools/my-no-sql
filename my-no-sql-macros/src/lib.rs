@@ -15,7 +15,7 @@ struct MyNoSqlEntityParameters<'s> {
 
 #[proc_macro_attribute]
 pub fn my_no_sql_entity(attr: TokenStream, input: TokenStream) -> TokenStream {
-    match crate::my_no_sql_entity::generate(attr.into(), input.into()) {
+    match crate::my_no_sql_entity::generate(attr.into(), input) {
         Ok(result) => result.into(),
         Err(err) => err.into_compile_error().into(),
     }

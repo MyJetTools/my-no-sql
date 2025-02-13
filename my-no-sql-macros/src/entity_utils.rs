@@ -1,11 +1,15 @@
-use quote::ToTokens;
+use std::collections::HashSet;
 
-pub fn compile_struct_with_new_fields(
+use quote::{quote, ToTokens};
+use syn::Ident;
+use types_reader::StructProperty;
+
+pub fn compile_src_with_new_fields(
     ast: &proc_macro2::TokenStream,
     add_pk: bool,
     add_rk: bool,
     add_timestamp: bool,
-) -> (syn::Ident, proc_macro2::TokenStream) {
+) -> (Ident, proc_macro2::TokenStream) {
     let mut result: Vec<proc_macro2::TokenTree> = Vec::new();
     let mut struct_name = None;
     let mut passed_struct_name = false;
@@ -52,6 +56,85 @@ pub fn compile_struct_with_new_fields(
 
     let struct_name = struct_name.unwrap();
     (struct_name, quote::quote!(#(#result)*))
+}
+
+pub fn extract_derive(ast: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+    let mut derive_result = Vec::new();
+
+    for item in ast.into_token_stream() {
+        let last_token = if let proc_macro2::TokenTree::Group(_) = &item {
+            true
+        } else {
+            false
+        };
+        derive_result.push(item);
+
+        if last_token {
+            break;
+        }
+    }
+
+    quote! {#(#derive_result)*}
+}
+
+pub fn compile_struct_with_new_fields(
+    struct_name: &Ident,
+    derive: proc_macro2::TokenStream,
+    fields: &[StructProperty],
+) -> Result<proc_macro2::TokenStream, syn::Error> {
+    let mut structure_fields = Vec::new();
+
+    let mut serde_fields = HashSet::new();
+    serde_fields.insert("PartitionKey");
+    serde_fields.insert("RowKey");
+    serde_fields.insert("TimeStamp");
+
+    for field in fields {
+        if field.name == "expires" {
+            if !field.ty.as_str().as_str().ends_with("Timestamp") {
+                return field.throw_error("Field must be a Timestamp");
+            }
+        }
+
+        if let Some(rename_attr) = field.attrs.try_get_attr("serde") {
+            let field_name = rename_attr.get_named_param("rename")?;
+            let field_name = field_name.unwrap_any_value_as_str()?;
+
+            let field_name = field_name.as_str()?;
+            if serde_fields.contains(field_name) {
+                return field.throw_error("Field with the same Serde name exists");
+            }
+
+            serde_fields.insert(field_name);
+        }
+
+        if serde_fields.contains(field.name.as_str()) {
+            return field.throw_error("Field with the same Serde name exists");
+        }
+
+        serde_fields.insert(field.name.as_str());
+
+        let field = field.field;
+
+        structure_fields.push(quote::quote! {#field,});
+    }
+    // #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    let result = quote! {
+
+        #derive
+        pub struct #struct_name{
+            #[serde(rename="PartitionKey")]
+            pub partition_key: String,
+            #[serde(rename="RowKey")]
+            pub row_key: String,
+            #[serde(rename="TimeStamp")]
+            #[serde(skip_serializing_if = "my_no_sql_sdk::abstractions::skip_timestamp_serializing")]
+            pub time_stamp: my_no_sql_sdk::abstractions::Timestamp,
+            #(#structure_fields)*
+        }
+    };
+
+    Ok(result)
 }
 
 fn populate_tokens(

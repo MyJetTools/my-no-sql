@@ -1,10 +1,15 @@
+use syn::Ident;
+use types_reader::StructProperty;
+
 use crate::entity_utils::*;
 
 pub fn generate_base_impl(
-    ast: &proc_macro2::TokenStream,
+    struct_name: &Ident,
+    derive: proc_macro2::TokenStream,
+    fields: &[StructProperty],
     table_name: &str,
 ) -> Result<proc_macro2::TokenStream, syn::Error> {
-    let (struct_name, new_struct) = compile_struct_with_new_fields(ast, true, true, true);
+    let new_struct = compile_struct_with_new_fields(struct_name, derive, fields)?;
 
     let fn_get_time_stamp = get_fn_get_time_stamp_token();
 
