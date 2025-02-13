@@ -97,15 +97,17 @@ pub fn compile_struct_with_new_fields(
         }
 
         if let Some(rename_attr) = field.attrs.try_get_attr("serde") {
-            let field_name = rename_attr.get_named_param("rename")?;
-            let field_name = field_name.unwrap_any_value_as_str()?;
+            let param_rename = rename_attr.try_get_named_param("rename");
+            if let Some(param_rename) = param_rename {
+                let param_rename = param_rename.unwrap_any_value_as_str()?;
+                let param_rename = param_rename.as_str()?;
 
-            let field_name = field_name.as_str()?;
-            if serde_fields.contains(field_name) {
-                return field.throw_error("Field with the same Serde name exists");
+                if serde_fields.contains(param_rename) {
+                    return field.throw_error("Field with the same Serde name exists");
+                }
+
+                serde_fields.insert(param_rename);
             }
-
-            serde_fields.insert(field_name);
         }
 
         if serde_fields.contains(field.name.as_str()) {
