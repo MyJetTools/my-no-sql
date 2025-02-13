@@ -8,8 +8,9 @@ pub fn generate_base_impl(
     derive: proc_macro2::TokenStream,
     fields: &[StructProperty],
     table_name: &str,
+    render_expires: bool,
 ) -> Result<proc_macro2::TokenStream, syn::Error> {
-    let new_struct = compile_struct_with_new_fields(struct_name, derive, fields)?;
+    let new_struct = compile_struct_with_new_fields(struct_name, derive, fields, render_expires)?;
 
     let fn_get_time_stamp = get_fn_get_time_stamp_token();
 

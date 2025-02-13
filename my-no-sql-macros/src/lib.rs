@@ -11,6 +11,7 @@ mod my_no_sql_entity;
 struct MyNoSqlEntityParameters<'s> {
     #[default]
     pub table_name: &'s str,
+    pub with_expires: Option<bool>,
 }
 
 #[proc_macro_attribute]

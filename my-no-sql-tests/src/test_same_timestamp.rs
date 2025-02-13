@@ -1,11 +1,9 @@
 use my_no_sql_macros::my_no_sql_entity;
-use my_no_sql_sdk::abstractions::Timestamp;
 use serde::*;
 
-#[my_no_sql_entity("test-table")]
+#[my_no_sql_entity(table_name:"test-table", with_expires:true)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MyEntity {
-    pub expires: Timestamp,
     pub ts: String,
 }
 

@@ -24,8 +24,13 @@ pub fn generate(
 
     let params = MyNoSqlEntityParameters::try_from(&attr)?;
 
-    let result =
-        super::generate_base_impl(struct_name, derive, fields.as_slice(), params.table_name)?;
+    let result = super::generate_base_impl(
+        struct_name,
+        derive,
+        fields.as_slice(),
+        params.table_name,
+        params.with_expires.unwrap_or(false),
+    )?;
 
     Ok(result.into())
 }

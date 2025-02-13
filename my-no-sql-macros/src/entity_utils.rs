@@ -81,6 +81,7 @@ pub fn compile_struct_with_new_fields(
     struct_name: &Ident,
     derive: proc_macro2::TokenStream,
     fields: &[StructProperty],
+    render_expires: bool,
 ) -> Result<proc_macro2::TokenStream, syn::Error> {
     let mut structure_fields = Vec::new();
 
@@ -120,6 +121,14 @@ pub fn compile_struct_with_new_fields(
 
         structure_fields.push(quote::quote! {#field,});
     }
+
+    if render_expires {
+        structure_fields.push(quote::quote! {
+            #[serde(rename="Expires")]
+            pub expires: my_no_sql_sdk::abstractions::Timestamp,
+        });
+    }
+
     // #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     let result = quote! {
 
