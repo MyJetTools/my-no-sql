@@ -174,11 +174,20 @@ where
                     .into(),
                 )
             } else {
-                LazyMyNoSqlEntity::Deserialized(
-                    TMyNoSqlEntity::deserialize_entity(db_entity_data.as_bytes())
-                        .unwrap()
-                        .into(),
-                )
+                let result = TMyNoSqlEntity::deserialize_entity(db_entity_data.as_bytes());
+
+                match result {
+                    Ok(result) => LazyMyNoSqlEntity::Deserialized(Arc::new(result)),
+                    Err(err) => {
+                        println!(
+                            "Invalid entity to deserialize. Table: {}. Content: {:?}",
+                            TMyNoSqlEntity::TABLE_NAME,
+                            db_entity_data.as_str()
+                        );
+
+                        panic!("Can not lazy deserialize entity. Err: {}", err);
+                    }
+                }
             };
 
             let partition_key = item_to_insert.get_partition_key();
