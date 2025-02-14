@@ -567,7 +567,15 @@ fn deserialize_entities<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
     while let Some(item) = json_array_iterator.get_next() {
         let itm = item.unwrap();
 
-        result.push(TEntity::deserialize_entity(itm.as_bytes()).unwrap());
+        match TEntity::deserialize_entity(itm.as_bytes()) {
+            Ok(entity) => {
+                result.push(entity);
+            }
+            Err(err) => {
+                println!("Entity: {:?}", std::str::from_utf8(itm.as_bytes()));
+                panic!("Can not deserialize entity: {}", err);
+            }
+        }
     }
     Ok(result)
 
