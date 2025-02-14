@@ -572,7 +572,11 @@ fn deserialize_entities<TEntity: MyNoSqlEntity + MyNoSqlEntitySerializer>(
                 result.push(entity);
             }
             Err(err) => {
-                println!("Entity: {:?}", std::str::from_utf8(itm.as_bytes()));
+                println!(
+                    "Table: '{}', Entity: {:?}",
+                    TEntity::TABLE_NAME,
+                    std::str::from_utf8(itm.as_bytes())
+                );
                 panic!("Can not deserialize entity: {}", err);
             }
         }
