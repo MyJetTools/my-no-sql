@@ -12,7 +12,7 @@ pub fn generate(
 ) -> Result<TokenStream, syn::Error> {
     let input_token_stream: proc_macro2::TokenStream = input.clone().into();
 
-    let derive = crate::entity_utils::extract_derive(&input_token_stream);
+    let derive = crate::entity_utils::extract_attributes(&input_token_stream);
 
     let input: DeriveInput = syn::parse(input).unwrap();
 

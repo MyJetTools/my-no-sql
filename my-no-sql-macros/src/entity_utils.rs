@@ -58,20 +58,18 @@ pub fn compile_src_with_new_fields(
     (struct_name, quote::quote!(#(#result)*))
 }
 
-pub fn extract_derive(ast: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+pub fn extract_attributes(ast: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     let mut derive_result = Vec::new();
 
     for item in ast.into_token_stream() {
-        let last_token = if let proc_macro2::TokenTree::Group(_) = &item {
-            true
-        } else {
-            false
-        };
-        derive_result.push(item);
-
-        if last_token {
-            break;
+        if let proc_macro2::TokenTree::Ident(item) = &item {
+            let to_str = item.to_string();
+            if to_str == "pub" || to_str == "struct" {
+                break;
+            }
         }
+
+        derive_result.push(item);
     }
 
     quote! {#(#derive_result)*}

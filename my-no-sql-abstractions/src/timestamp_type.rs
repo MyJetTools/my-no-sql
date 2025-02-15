@@ -117,6 +117,7 @@ pub fn skip_timestamp_serializing(timestamp: &Timestamp) -> bool {
 
 #[cfg(test)]
 mod test {
+    use rust_extensions::date_time::{DateTimeAsMicroseconds, DateTimeStruct};
     use serde::{Deserialize, Serialize};
 
     use super::Timestamp;
@@ -170,5 +171,21 @@ mod test {
 
         assert_eq!(my_type.my_field, result_type.my_field);
         assert_eq!(my_type.timestamp.0, result_type.timestamp.0);
+    }
+
+    #[test]
+    fn test_from_real_example() {
+        let time_stamp = DateTimeAsMicroseconds::from_str("2024-11-29T14:59:15.6145").unwrap();
+
+        let dt_struct: DateTimeStruct = time_stamp.into();
+
+        assert_eq!(dt_struct.year, 2024);
+        assert_eq!(dt_struct.month, 11);
+        assert_eq!(dt_struct.day, 29);
+
+        assert_eq!(dt_struct.time.hour, 14);
+        assert_eq!(dt_struct.time.min, 59);
+        assert_eq!(dt_struct.time.sec, 15);
+        assert_eq!(dt_struct.time.micros, 614500);
     }
 }
